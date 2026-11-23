@@ -1,0 +1,37 @@
+# Erzeugt requirements.lock, requirements-dev.lock und package-lock.json und trägt sie ins Repo ein.
+# Start: Actions > "Lock-Dateien erzeugen" > Run workflow (auch vom Smartphone möglich).
+name: Lock-Dateien erzeugen
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lock-Dateien erzeugen
+        run: ./scripts/lock-deps.sh
+
+      - name: Prüfen
+        run: |
+          set -e
+          for f in backend/requirements.lock backend/requirements-dev.lock frontend/package-lock.json; do
+            test -s "$f" || { echo "Fehlt oder leer: $f"; exit 1; }
+          done
+          grep -q -- "--hash=sha256" backend/requirements.lock
+
+      - name: Commit und Push
+        run: |
+          set -e
+          sudo chown -R "$(id -u):$(id -g)" backend frontend
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/requirements.lock backend/requirements-dev.lock frontend/package-lock.json
+          if git diff --cached --quiet; then echo "Keine Änderungen."; exit 0; fi
+          git commit -q -m "Lock-Dateien aktualisiert"
+          git push
