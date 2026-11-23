@@ -91,6 +91,7 @@ export default function AvailabilityManage() {
           </select>
         </Field>
         <ErrorBox error={users.error} onRetry={users.reload} />
+        {!users.loading && list.length === 0 && <p className="muted small">Keine Personen sichtbar. Für diese Seite wird zusätzlich das Recht „Benutzerliste ansehen“ benötigt.</p>}
       </Card>
       {uid !== "" && <AvailabilityCard key={uid} userId={uid} title={`Verfügbarkeit: ${list.find((u) => u.id === uid)?.name ?? ""}`} />}
     </>

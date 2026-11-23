@@ -35,7 +35,9 @@ def _active_user(db: Session, tenant_id: int, user_id: int) -> User:
 
 def _warn(db, user: User, target_id: int, start, end, ignore: bool, exclude_id, break_minutes: int = 0) -> None:
     """Weiche Planungshinweise: 422 mit Liste, außer der Planer bestätigt ausdrücklich."""
-    warnings = shift_warnings(db, user.tenant_id, target_id, start, end, exclude_id, break_minutes)
+    # Begründungstexte der Verfügbarkeit sieht nur, wer die Verfügbarkeit anderer sehen darf
+    show_notes = "availability.manage" in permissions_for(db, user)
+    warnings = shift_warnings(db, user.tenant_id, target_id, start, end, exclude_id, break_minutes, show_notes)
     if warnings and not ignore:
         raise HTTPException(422, detail={"message": "Planungshinweis: " + " ".join(warnings),
                                          "warnings": warnings})

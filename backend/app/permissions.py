@@ -3,6 +3,7 @@ ROLES = ("admin", "mitarbeiter", "benutzer")
 ALL_PERMISSIONS = {
     "shifts.view": "Dienstplan ansehen",
     "shifts.manage": "Dienstplan erstellen und bearbeiten",
+    "availability.manage": "Verfügbarkeit anderer Personen sehen und pflegen",
     "swap.request": "Schichttausch anfragen und annehmen",
     "leave.request": "Urlaub beantragen",
     "leave.approve": "Urlaub genehmigen",

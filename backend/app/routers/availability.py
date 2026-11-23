@@ -1,8 +1,8 @@
 """Verfügbarkeiten: wiederkehrende Zeiten, an denen eine Person nicht eingeplant werden kann.
 
-Jede Person pflegt ihre eigenen Angaben. Planer und Administratoren (shifts.manage) sehen alle, können
-Angaben auch für andere pflegen (z. B. für Mitarbeiter ohne Smartphone) und bekommen beim Einplanen einen
-Hinweis (siehe services/rules.py). Es sind nur Hinweise, keine Sperren.
+Jede Person pflegt ihre eigenen Angaben. Nur Administratoren und Rollen mit dem Recht availability.manage (gezielt vergebbar, standardmäßig nur
+Administratoren) sehen die Angaben anderer und können sie pflegen (z. B. für Mitarbeiter ohne Smartphone).
+Planer ohne dieses Recht erhalten beim Einplanen nur einen Hinweis ohne Begründungstext (siehe services/rules.py). Es sind nur Hinweise, keine Sperren.
 Einträge gelten wöchentlich (weekday) oder nur für einen einzelnen Tag (on_date).
 """
 from typing import Optional
@@ -24,10 +24,10 @@ router = APIRouter(prefix="/api/availability", tags=["availability"])
 @router.get("", response_model=list[AvailabilityOut])
 def list_availability(user_id: Optional[int] = None, user=Depends(get_current_user),
                       db: Session = Depends(get_db)):
-    """Ohne user_id: eigene Angaben. Mit user_id (oder alle=Planer): nur mit Recht shifts.manage."""
+    """Ohne user_id: eigene Angaben. Mit user_id (oder alle): nur mit Recht availability.manage."""
     q = select(Availability).where(Availability.tenant_id == user.tenant_id)
     if user_id is not None and user_id != user.id:
-        if "shifts.manage" not in permissions_for(db, user):
+        if "availability.manage" not in permissions_for(db, user):
             raise HTTPException(403, "Keine Berechtigung")
         get_user_or_404(db, user.tenant_id, user_id)
     q = q.where(Availability.user_id == (user_id if user_id is not None else user.id))
@@ -35,7 +35,7 @@ def list_availability(user_id: Optional[int] = None, user=Depends(get_current_us
 
 
 @router.get("/all", response_model=list[AvailabilityOut])
-def list_all(user=Depends(require("shifts.manage")), db: Session = Depends(get_db)):
+def list_all(user=Depends(require("availability.manage")), db: Session = Depends(get_db)):
     return db.scalars(select(Availability).where(Availability.tenant_id == user.tenant_id)
                       .order_by(Availability.user_id, Availability.weekday, Availability.start_time)).all()
 
@@ -44,10 +44,10 @@ def list_all(user=Depends(require("shifts.manage")), db: Session = Depends(get_d
 def replace(body: AvailabilityListIn, request: Request, user_id: Optional[int] = None,
             user=Depends(get_current_user), db: Session = Depends(get_db)):
     """Ersetzt die Liste vollständig (einfach und konfliktfrei bei mehreren Geräten).
-    Ohne user_id: eigene Liste. Mit user_id einer anderen Person: nur mit Recht shifts.manage (wird protokolliert)."""
+    Ohne user_id: eigene Liste. Mit user_id einer anderen Person: nur mit Recht availability.manage (wird protokolliert)."""
     target = user
     if user_id is not None and user_id != user.id:
-        if "shifts.manage" not in permissions_for(db, user):
+        if "availability.manage" not in permissions_for(db, user):
             raise HTTPException(403, "Keine Berechtigung")
         target = get_user_or_404(db, user.tenant_id, user_id)
     db.execute(delete(Availability).where(Availability.user_id == target.id,

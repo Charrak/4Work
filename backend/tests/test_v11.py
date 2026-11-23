@@ -142,6 +142,8 @@ def test_company_endpoint_and_privacy_setting(world):
 def test_new_permissions_exist_in_roles(world):
     roles = world["admin"].get("/api/roles").json()
     assert "documents.view" in roles["roles"]["benutzer"] and "documents.manage" not in roles["roles"]["benutzer"]
+    assert "availability.manage" in roles["permissions"]
+    assert all("availability.manage" not in roles["roles"][r] for r in ("mitarbeiter", "benutzer"))   # standardmäßig nur Administrator
 
 
 
@@ -229,25 +231,39 @@ def test_availability_single_day_and_weekly_distinct(world):
     assert admin.post("/api/shifts", json=ok).status_code == 201
 
 
-def test_planner_and_admin_can_maintain_availability_for_others(world):
-    admin, ids = world["admin"], world["ids"]
+def test_availability_of_others_only_for_admin_or_granted_role(world):
+    admin, ids, dept = world["admin"], world["ids"], world["dept"]
     anna = world["new_client"]("anna@test.de")
     ben = world["new_client"]("ben@test.de")
+    planer = world["new_client"]("planer@test.de")
     item = {"weekday": 2, "start_time": "00:00", "end_time": "12:00", "note": "pflegt Angehörige"}
     # Admin pflegt für Anna
     r = admin.put(f"/api/availability?user_id={ids['anna']}", json={"items": [item]})
     assert r.status_code == 200 and r.json()[0]["user_id"] == ids["anna"]
     assert len(anna.get("/api/availability").json()) == 1
     assert admin.get("/api/availability").json() == []                      # eigene Liste des Admins unberührt
-    # Planer darf ebenfalls
-    planer = world["new_client"]("planer@test.de")
+    # Standardmäßig darf NIEMAND außer dem Administrator fremde Angaben sehen oder ändern – auch Planer nicht
+    for c in (ben, planer):
+        assert c.get(f"/api/availability?user_id={ids['anna']}").status_code == 403
+        assert c.get("/api/availability/all").status_code == 403
+        assert c.put(f"/api/availability?user_id={ids['anna']}", json={"items": []}).status_code == 403
+    assert len(anna.get("/api/availability").json()) == 1                   # nichts verändert
+    # Planer sieht beim Einplanen nur den Hinweis, aber nicht den Begründungstext
+    wed = _free_monday() + timedelta(days=2)
+    body = {"department_id": dept, "user_id": ids["anna"], "start": _utc(wed, "08:00"), "end": _utc(wed, "11:00")}
+    r = planer.post("/api/shifts", json=body)
+    assert r.status_code == 422 and "nicht verfügbar" in r.json()["detail"]["message"]
+    assert "pflegt Angehörige" not in r.json()["detail"]["message"]
+    r = admin.post("/api/shifts", json=body)
+    assert r.status_code == 422 and "pflegt Angehörige" in r.json()["detail"]["message"]
+    # Administrator kann das Recht gezielt an die Planer-Rolle vergeben
+    perms = admin.get("/api/roles").json()["roles"]["mitarbeiter"]
+    assert "availability.manage" not in perms
+    assert admin.put("/api/roles/mitarbeiter", json={"permissions": perms + ["availability.manage"]}).status_code == 200
     assert planer.put(f"/api/availability?user_id={ids['anna']}", json={"items": []}).status_code == 200
     assert anna.get("/api/availability").json() == []
-    # Normale Mitarbeiter dürfen nicht für andere ändern
-    assert ben.put(f"/api/availability?user_id={ids['anna']}", json={"items": [item]}).status_code == 403
     # Protokoll nennt die betroffene Person
-    log = admin.get("/api/admin/audit?limit=200").json()
-    rows = log["items"] if isinstance(log, dict) else log
+    rows = admin.get("/api/admin/audit?limit=200").json()
     assert any(x["action"] == "availability.update" and f"fuer_user={ids['anna']}" in x["detail"] for x in rows)
 
 

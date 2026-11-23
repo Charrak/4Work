@@ -19,7 +19,8 @@ def _net(s: Shift) -> float:
 
 
 def shift_warnings(db, tenant_id: int, user_id: int, start: datetime, end: datetime,
-                   exclude_id: Optional[int] = None, break_minutes: int = 0) -> list[str]:
+                   exclude_id: Optional[int] = None, break_minutes: int = 0,
+                   show_notes: bool = False) -> list[str]:
     from ..models import User
     from .limits import get_limit
     person = db.get(User, user_id)
@@ -108,13 +109,13 @@ def shift_warnings(db, tenant_id: int, user_id: int, start: datetime, end: datet
             if ls.date() == le.date():
                 if ls.strftime("%H:%M") < a.end_time and le.strftime("%H:%M") > a.start_time:
                     out.append(f"Person ist laut Verfügbarkeit {label} {a.start_time}–{a.end_time} nicht verfügbar"
-                               + (f" ({a.note})" if a.note else ""))
+                               + (f" ({a.note})" if a.note and show_notes else ""))
             else:
                 out.append(f"Schicht über Mitternacht berührt eine Nichtverfügbarkeit {label}")
         elif ls.weekday() == a.weekday and ls.date() == le.date():
             if ls.strftime("%H:%M") < a.end_time and le.strftime("%H:%M") > a.start_time:
                 out.append(f"Person ist laut Verfügbarkeit am {names[a.weekday]} {a.start_time}–{a.end_time} nicht verfügbar"
-                           + (f" ({a.note})" if a.note else ""))
+                           + (f" ({a.note})" if a.note and show_notes else ""))
         elif ls.weekday() == a.weekday or le.weekday() == a.weekday:
             out.append(f"Schicht über Mitternacht berührt eine Nichtverfügbarkeit am {names[a.weekday]}")
     return out

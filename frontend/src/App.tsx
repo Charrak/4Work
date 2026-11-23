@@ -109,7 +109,7 @@ export default function App() {
           <Route element={<Protected />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/plan" element={<Guard perm={["shifts.view"]}><Schedule /></Guard>} />
-            <Route path="/verfuegbarkeit" element={<Guard perm={["shifts.manage"]}><AvailabilityManage /></Guard>} />
+            <Route path="/verfuegbarkeit" element={<Guard perm={["availability.manage"]}><AvailabilityManage /></Guard>} />
             <Route path="/tausch" element={<Guard perm={["shifts.view"]}><Swaps /></Guard>} />
             <Route path="/urlaub" element={<Guard perm={["leave.request", "leave.approve"]}><Leave /></Guard>} />
             <Route path="/zeit" element={<Guard perm={["time.clock", "time.approve"]}><Time /></Guard>} />

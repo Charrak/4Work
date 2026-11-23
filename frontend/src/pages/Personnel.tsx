@@ -122,7 +122,7 @@ export default function Personnel() {
         </tbody></table></div>
       </Card>
 
-      <AvailabilityCard userId={d.profile.id} title="Verfügbarkeit" />
+      {can("availability.manage") && <AvailabilityCard userId={d.profile.id} title="Verfügbarkeit" />}
 
       <Card title="Dokumente">
         {d.documents.length === 0 && <Empty>{can("documents.manage") ? "Keine Dokumente." : "Dokumente sehen nur Nutzer mit dem Recht „Dokumente verwalten“."}</Empty>}
