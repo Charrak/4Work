@@ -19,7 +19,7 @@ jobs:
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
       - name: Abhängigkeiten fixiert?
         run: test -f package-lock.json || (echo "package-lock.json fehlt - ./scripts/lock-deps.sh ausführen und einchecken" && exit 1)
