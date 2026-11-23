@@ -1,0 +1,50 @@
+# Bedienungsanleitung
+
+Die Software kennt drei Rollen. Welche Menüpunkte Sie sehen, hängt von Ihrer Rolle ab (die Rechte lassen sich im Adminbereich anpassen).
+
+| Rolle | Wer | Standardrechte |
+|---|---|---|
+| **Administrator** | Inhaber/Leitung | alles |
+| **Mitarbeiter (Planer)** | Büro, Teamleitung | Dienstplan erstellen, Urlaub/Tausch/Zeiten freigeben, Berichte |
+| **Benutzer (Schichtmitarbeiter)** | Team | eigenen Plan sehen, Tausch, Urlaub beantragen, Stempeln, Chat |
+
+## Anmelden und App installieren
+- Adresse im Browser öffnen, E-Mail und Passwort eingeben. „Passwort vergessen?“ sendet einen Link per E-Mail (falls eingerichtet) – sonst setzt der Administrator das Passwort neu.
+- **Installieren:** Profil → „App installieren“ (iPhone: Teilen → „Zum Home-Bildschirm“). Danach startet die App im Vollbild mit eigenem Symbol.
+- **Darstellung** (hell/dunkel/automatisch) und **Passwort ändern** finden Sie im Profil.
+- Ohne Internet sehen Sie den zuletzt geladenen Stand mit Hinweisbalken. Chat-Nachrichten und Urlaubsanträge werden gemerkt und später automatisch gesendet. **Stempeln geht nur online.**
+
+## Für alle Mitarbeiter
+**Start:** Stempeluhr, Ihre nächsten Schichten, offene Aufgaben.
+**Stempeln:** „Einstempeln“ / „Ausstempeln“. Der Standort wird nur gespeichert, wenn Sie das Häkchen setzen (freiwillig).
+**Dienstplan:** Woche mit ‹ › wechseln, nach Abteilung filtern. Eigene Schichten sind hervorgehoben. Sie sehen nur veröffentlichte Schichten Ihrer Abteilung(en).
+**Schicht tauschen:** Schicht antippen → „Tausch anfragen“. Kollegen derselben Abteilung sehen die Anfrage unter *Tausch* und können sie übernehmen. Danach muss der Planer den Tausch freigeben – erst dann ändert sich der Plan.
+**Offene Schichten:** unter *Tausch* → „Offene Schichten“ → „Übernehmen“. Je nach Einstellung gehört sie Ihnen sofort oder erst nach Freigabe.
+**Urlaub und Abwesenheit:** *Urlaub* → Art wählen (Urlaub, Krankmeldung, Sonderurlaub, Wunschfrei) → Zeitraum → „Senden“. Nur Urlaub zählt gegen das Urlaubskonto (nur Ihre regulären Arbeitstage, Standard Mo–Fr; gesetzliche Feiertage in NRW werden nicht abgezogen). Krankmeldungen dürfen rückwirkend erfasst werden. Unten sehen Sie, wer in den nächsten 60 Tagen abwesend ist (ohne Grund). Offene Anträge können Sie stornieren.
+**Verfügbarkeit:** *Mehr → Profil → Meine Verfügbarkeit*: wiederkehrende Zeiten eintragen, an denen Sie nicht arbeiten können.
+**Dokumente:** Menü *Dokumente*: Firmendokumente lesen, eigene Verträge ansehen, Krankschreibungen hochladen (PDF/Foto, max. 10 MB).
+**Chat:** Nachrichten an das ganze Team.
+**Meine Daten:** Profil → „Daten herunterladen“ (Auskunft nach DSGVO).
+
+## Für Planer
+**Schicht anlegen:** im Dienstplan beim Tag „+ Schicht“ → Abteilung, Person (oder leer = offene Schicht), Zeiten, Pause, Notiz → Speichern. Mit „Vorlage verwenden“ (z. B. Frühdienst) füllen sich Zeiten und Pause automatisch; Vorlagen pflegt der Administrator unter *Verwaltung → Schichtvorlagen*. Das Programm verhindert Überschneidungen und Einteilung während genehmigten Urlaubs. Bei zu kurzer Ruhezeit (< 11 h), Überschreitung der Höchstarbeitszeit (Tag/Woche), der Vertragsstunden oder angegebener Nichtverfügbarkeit erscheint ein Hinweis; „Trotzdem speichern“ übergeht ihn bewusst.
+**Entwürfe:** Neue Schichten sind zunächst *Entwurf* (gestrichelt, nur für Planer sichtbar). „Veröffentlichen“ macht sie für die Mitarbeiter sichtbar und benachrichtigt die Betroffenen.
+**Woche kopieren:** übernimmt die Woche in die nächste (als Entwurf). Personen mit Urlaub/Überschneidung werden zur offenen Schicht.
+**Änderungen gleichzeitig:** Hat jemand anderes dieselbe Schicht inzwischen geändert, erscheint ein Hinweis – bitte schließen und neu öffnen, damit nichts überschrieben wird.
+**Freigaben:** *Tausch* (Tauschanfragen), *Urlaub* (Anträge), *Zeit* → „Alle Mitarbeiter“ → „Prüfen“ (Zeiten korrigieren und freigeben; jede Änderung wird protokolliert).
+**Stundenlohn und Vertragsstunden:** *Verwaltung → Benutzer → Bearbeiten*: Stundensatz, Vertragsstunden pro Woche und Arbeitstage. Liegt der Stundensatz unter dem Mindestlohn, fragt das Programm nach. Mindestlohn und Höchstarbeitszeiten stellen Sie unter *Verwaltung → Einstellungen* ein.
+**Personalakte:** *Verwaltung → Benutzer → Akte*. Alles zu einer Person an einem Ort: Stammdaten (Telefon, Funktion, Eintritt, Vertragsende, interne Notiz), Vertrag und Stundensatz-Verlauf, Urlaub und Krankheitstage, Arbeitszeit-Kennzahlen, Dokumente (nur mit Recht „Dokumente verwalten“) und Änderungsverlauf. Jeder Abruf wird protokolliert. Bitte keine Diagnosen oder Gesundheitsdaten in die Notiz schreiben.
+**Zuschläge, Minijob, Jugendliche:** Prozentsätze und Grenzwerte unter *Verwaltung → Einstellungen*. In der Benutzerverwaltung markieren Sie Minijobber (dann erscheint das Feld „Maximaler Verdienst pro Monat“ – leer = Firmenvorgabe) und Jugendliche (unter 18) und können den Stundensatz „ab Datum“ ändern – alte Abrechnungen behalten den damaligen Satz. „Einstempeln sperren“ verhindert das Einstempeln bei verletzter Ruhezeit/Höchstarbeitszeit.
+**Berichte:** Zeitraum wählen → Soll, Gearbeitet, Freigegeben, Mehr/Minder-Stunden und Kosten pro Person (Pausen werden abgezogen); „CSV für Lohnabrechnung“ lädt eine Datei für Excel/Steuerberater.
+
+## Für Administratoren (Menü *Verwaltung*)
+- **Benutzer:** anlegen (Name, E-Mail, Startpasswort, Rolle, Abteilungen, Stundensatz, Urlaubstage), bearbeiten, sperren/entsperren, Passwort setzen, löschen (anonymisiert).
+- **Rollen & Rechte:** Haken setzen, „Rechte speichern“. Gilt sofort. Der Administrator behält immer alle Rechte.
+- **Abteilungen:** anlegen, umbenennen, löschen (nur wenn keine Schichten darin liegen).
+- **Einstellungen:** Firmenname, Standard-Urlaubstage.
+- **System:** Auswertungen (Benutzer, Schichten, offene Anträge) und Serverstatus.
+- **Protokoll:** wer hat wann was getan (Anmeldungen, Änderungen, Freigaben), filterbar.
+- **Fehlerprotokoll:** letzte Zeilen des Server-Protokolls.
+- **Backups:** Backup erstellen und herunterladen. Wiederherstellen geschieht auf dem Server (siehe WARTUNG.md).
+
+**Empfehlung zum Start:** zweiten Administrator anlegen, Abteilungen prüfen, Mitarbeiter mit Abteilung anlegen, dann die erste Woche planen und veröffentlichen.

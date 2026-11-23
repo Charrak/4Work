@@ -1,0 +1,77 @@
+# Entpackt eine ZIP-Datei im Hauptverzeichnis des Repos und übernimmt den Inhalt als Commit.
+# Nutzung: ZIP (z. B. dienstplan-projekt.zip) per "Add file > Upload files" auf den Branch main hochladen.
+# Oder: Actions > "ZIP entpacken" > Run workflow (Dateiname angeben).
+name: ZIP entpacken
+
+on:
+  push:
+    branches: [main]
+    paths: ["*.zip"]
+  workflow_dispatch:
+    inputs:
+      zip:
+        description: "Name der ZIP-Datei im Hauptverzeichnis (leer = erste gefundene)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unpack-zip
+  cancel-in-progress: false
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ZIP finden
+        id: find
+        env:
+          INPUT_ZIP: ${{ inputs.zip }}
+        run: |
+          set -euo pipefail
+          ZIP="${INPUT_ZIP:-}"
+          if [ -z "$ZIP" ]; then ZIP="$(ls -1t ./*.zip 2>/dev/null | head -n1 | sed 's|^\./||' || true)"; fi
+          if [ -z "$ZIP" ] || [ ! -f "$ZIP" ]; then echo "Keine ZIP-Datei im Hauptverzeichnis gefunden."; exit 1; fi
+          case "$ZIP" in */*|..*) echo "Nur Dateien im Hauptverzeichnis erlaubt."; exit 1;; esac
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "Verwende: $ZIP"
+
+      - name: Prüfen und entpacken
+        env:
+          ZIP: ${{ steps.find.outputs.zip }}
+        run: |
+          set -euo pipefail
+          # Sicherheit: keine absoluten Pfade und kein ".." in der ZIP
+          if unzip -Z1 "$ZIP" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then echo "Unzulässige Pfade in der ZIP."; exit 1; fi
+          X="$RUNNER_TEMP/extract"; rm -rf "$X"; mkdir -p "$X"
+          unzip -q "$ZIP" -d "$X"
+          # Gibt es genau einen Oberordner und sonst nichts, wird er entfernt.
+          SRC="$X"
+          if [ "$(ls -A "$X" | wc -l)" = "1" ] && [ -d "$X/$(ls -A "$X")" ]; then SRC="$X/$(ls -A "$X")"; fi
+          # Nie übernehmen: Geheimnisse, Abhängigkeiten, Build-Reste
+          rm -f "$SRC/.env" "$SRC"/.env.local
+          find "$SRC" -type d \( -name node_modules -o -name __pycache__ -o -name .git \) -prune -exec rm -rf {} +
+          # GITHUB_TOKEN darf keine Workflow-Dateien ändern -> diese nie überschreiben
+          rm -rf "$SRC/.github/workflows"
+          # Alte Dateien entfernen (Spiegelung), aber Git, Workflows und ZIPs behalten
+          rsync -a --delete \
+            --exclude='/.git/' --exclude='/.github/workflows/' --exclude='/*.zip' \
+            "$SRC"/ ./
+          git rm -q --cached "$ZIP" 2>/dev/null || true
+          rm -f "$ZIP"
+
+      - name: Commit und Push
+        env:
+          ZIP: ${{ steps.find.outputs.zip }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Keine Änderungen."; exit 0; fi
+          git commit -q -m "Update aus ${ZIP}"
+          git push

@@ -1,0 +1,27 @@
+# Datenschutz (DSGVO) – Hinweise für den Betrieb
+
+Dies ist eine technische Hilfestellung, keine Rechtsberatung. Lassen Sie Ihr Verarbeitungsverzeichnis und die Mitarbeiterinformation von Ihrem Datenschutzbeauftragten oder Steuerberater prüfen.
+
+## Welche Daten gespeichert werden
+Name, E-Mail, Rolle, Abteilung, Stundensatz, Urlaubstage; Schichten; Arbeitszeiten (Stempelungen); Urlaubsanträge; Chat-Nachrichten; Protokolleinträge (Aktion, Zeit, IP-Adresse); optional Standort beim Stempeln (nur mit Zustimmung im Einzelfall); optional Push-Abonnement des Geräts; Dokumente (Arbeitsverträge, Schulungsnachweise, **Krankschreibungen = Gesundheitsdaten, Art. 9 DSGVO**); Abwesenheitsart (z. B. Krankmeldung).
+
+## Umgesetzte Maßnahmen
+- **Datensparsamkeit:** Standort nur freiwillig pro Stempelung; keine Tracker, keine externen Dienste (Schriften, Analyse). Alle Daten liegen auf Ihrem eigenen Server.
+- **Zugriffsschutz:** Rollen und einzeln einstellbare Rechte; Mitarbeiter sehen nur veröffentlichte Pläne ihrer Abteilung.
+- **Sicherheit:** HTTPS (HSTS), Passwörter nur als Argon2-Hash, HttpOnly-Cookies mit CSRF-Schutz, Sperre nach Fehlversuchen, Begrenzung sensibler Aufrufe, Schutz vor SQL-Injection (parametrisierte Abfragen) und XSS (React-Escaping, strenge Content-Security-Policy).
+- **Nachvollziehbarkeit:** Protokoll aller Administrator- und Freigabe-Aktionen.
+- **Auskunft/Übertragbarkeit (Art. 15/20):** Profil → „Daten herunterladen“ (JSON); Administratoren können den Export für jede Person abrufen.
+- **Löschkonzept:** *Verwaltung → Benutzer → Löschen* anonymisiert die Person (Name, E-Mail, Stundensatz, Chat, Push-Abos werden gelöscht bzw. ersetzt). Schichten und Zeiteinträge bleiben ohne Personenbezug erhalten, um Aufbewahrungspflichten (z. B. Arbeitszeitnachweise) zu erfüllen. Offene künftige Schichten der Person werden zu offenen Schichten.
+- **Gesundheitsdaten:** Kollegen sehen bei Abwesenheiten nur „abwesend“, nie den Grund. Dokumente sind nur für die Person selbst und Nutzer mit Recht „Dokumente verwalten“ (Standard: Administrator) abrufbar; Zugriffe werden protokolliert. Beim Löschen einer Person müssen vorhandene Dokumente ausdrücklich mitgelöscht werden (Aufbewahrungsfristen vorher prüfen). Ablage im Dateisystem des Servers: Festplattenverschlüsselung empfohlen.
+- **Datenschutzhinweis in der App:** Menü „Datenschutz“; den Ansprechpartner tragen Sie unter *Verwaltung → Einstellungen* ein.
+- **Lohn- und Sonderdaten:** Stundensatz (mit Verlauf), Vertragsstunden, Kennzeichen „Minijob“/„Jugendlich“ sehen nur Nutzer mit „Benutzer verwalten“ und die Person selbst im Export. Das Kennzeichen „Jugendlich“ ersetzt bewusst das Geburtsdatum (Datensparsamkeit). Der Stundensatz-Verlauf bleibt nach der Anonymisierung ohne Personenbezug bestehen.
+- **Personalakte:** Telefon, Funktion, Eintritt, Vertragsende und interne Notiz sind nur mit „Benutzer verwalten“ sichtbar (Administratorakten nur für Administratoren), Dokumente nur zusätzlich mit „Dokumente verwalten“. Abruf und Änderung werden protokolliert. Diese Felder sind im Datenexport enthalten und werden beim Löschen der Person entfernt. Aufbewahrungsfristen für Personalunterlagen (z. B. Lohnunterlagen) prüfen Sie bitte selbst, bevor Sie eine Person löschen.
+- **Verschlüsselung ruhender Daten:** Backups (AES-256-GCM, Passphrase) und hochgeladene Dokumente (AES-256-GCM, Schlüssel in `.env`) sind verschlüsselt. Die laufende Datenbank ist es nicht – Festplattenverschlüsselung des Servers empfohlen. Schlüsselverlust = Datenverlust: Schlüssel getrennt vom Server aufbewahren.
+- **Backups:** enthalten Personendaten; täglich, 14 Tage Aufbewahrung (einstellbar). Gelöschte/anonymisierte Daten verschwinden nach Ablauf dieser Frist auch aus den Backups. Wird ein altes Backup wiederhergestellt, sind bereits gelöschte Personen ggf. wieder vorhanden – **Löschungen danach erneut durchführen**.
+
+## Was Sie als Betreiber noch tun müssen
+- Mitarbeiter über die Verarbeitung informieren (Art. 13), insbesondere über die optionale Standorterfassung.
+- Verarbeitung im Verzeichnis der Verarbeitungstätigkeiten aufnehmen; Aufbewahrungsfristen für Arbeitszeitnachweise festlegen und Altdaten danach löschen.
+- Serverbetreiber (VPS-Anbieter) per Auftragsverarbeitungsvertrag binden, Serverstandort in der EU wählen.
+- Backups außerhalb des Servers verschlüsselt ablegen; Zugriff auf den Server (SSH) mit Schlüsseln absichern; Betriebssystem aktuell halten.
+- Gesundheitsdaten (Krankmeldungen mit Diagnose) gehören **nicht** in Notizfelder oder den Chat.
