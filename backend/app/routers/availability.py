@@ -1,8 +1,8 @@
 """Verfügbarkeiten: wiederkehrende Zeiten, an denen eine Person nicht eingeplant werden kann.
 
-Jede Person pflegt ihre eigenen Angaben. Nur Administratoren und Rollen mit dem Recht availability.manage (gezielt vergebbar, standardmäßig nur
-Administratoren) sehen die Angaben anderer und können sie pflegen (z. B. für Mitarbeiter ohne Smartphone).
-Planer ohne dieses Recht erhalten beim Einplanen nur einen Hinweis ohne Begründungstext (siehe services/rules.py). Es sind nur Hinweise, keine Sperren.
+Jede Person pflegt ihre eigenen Angaben. Administratoren und Rollen mit dem Recht availability.manage (Standard: Planer-Rolle; entziehbar,
+normale Mitarbeiter haben es nie) sehen die Angaben anderer und können sie pflegen (z. B. für Mitarbeiter ohne Smartphone).
+Wer das Recht nicht hat, erhält beim Einplanen nur einen Hinweis ohne Begründungstext (siehe services/rules.py). Es sind nur Hinweise, keine Sperren.
 Einträge gelten wöchentlich (weekday) oder nur für einen einzelnen Tag (on_date).
 """
 from typing import Optional

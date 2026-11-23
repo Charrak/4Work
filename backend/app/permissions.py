@@ -25,7 +25,7 @@ ALL_PERMISSIONS = {
 DEFAULT_ROLE_PERMISSIONS = {
     "benutzer": ["shifts.view", "swap.request", "leave.request", "time.clock", "chat.use", "documents.view"],
     "mitarbeiter": [
-        "shifts.view", "shifts.manage", "swap.request", "leave.request", "leave.approve",
+        "shifts.view", "shifts.manage", "availability.manage", "swap.request", "leave.request", "leave.approve",
         "time.clock", "time.approve", "users.view", "reports.view", "chat.use", "documents.view",
     ],
 }
