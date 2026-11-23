@@ -19,7 +19,7 @@ def test_backup_create_list_download(world):
     assert re.match(r"^backup-\d{8}-\d{6}\.sqlite3\.enc$", name)
     assert name in [b["name"] for b in admin.get("/api/admin/backups").json()]
     dl = admin.get(f"/api/admin/backups/{name}")
-    assert dl.status_code == 200 and dl.content[:15] == b"SQLite format 3"
+    assert dl.status_code == 200 and dl.content[:5] == b"DPBK1"   # verschlüsselt, kein Klartext-SQLite
     assert admin.get("/api/admin/backups/..%2F..%2Fetc%2Fpasswd").status_code == 404
     assert admin.get("/api/admin/backups/evil.sh").status_code == 404
 

@@ -129,7 +129,7 @@ def test_backup_includes_documents(world):
     upload(admin, "f.pdf", b"%PDF-1", category="allgemein")
     name = admin.post("/api/admin/backups").json()["name"]
     names = [b["name"] for b in admin.get("/api/admin/backups").json()]
-    assert name in names and any(n.endswith(".files.tar.gz") for n in names)
+    assert name in names and any(n.endswith(".files.tar.gz.enc") for n in names)
 
 
 def test_company_endpoint_and_privacy_setting(world):
@@ -342,7 +342,7 @@ def test_clock_in_blocked_when_limit_reached_and_setting_on(world):
     _entry(uid, now - td(hours=5), now - td(hours=1))                  # Ruhezeit seit dem Ausstempeln nur 1 h
     assert anna.post("/api/time/clock-in", json={}).status_code == 201   # Sperre aus: nur Protokolleintrag
     anna.post("/api/time/clock-out")
-    assert admin.put("/api/admin/settings", json={"values": {"block_clock_over_limit": "true"}}).status_code == 200
+    assert admin.put("/api/admin/settings", json={"values": {"block_clock_over_limit": "1"}}).status_code == 200
     r = anna.post("/api/time/clock-in", json={})
     assert r.status_code == 422 and "Einstempeln nicht möglich" in r.json()["detail"]["message"]
 
