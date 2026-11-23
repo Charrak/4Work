@@ -1,7 +1,9 @@
 """Verfügbarkeiten: wiederkehrende Zeiten, an denen eine Person nicht eingeplant werden kann.
 
-Jede Person pflegt ihre eigenen Angaben. Planer (shifts.manage) sehen alle und bekommen
-beim Einplanen einen Hinweis (siehe services/rules.py). Es sind nur Hinweise, keine Sperren.
+Jede Person pflegt ihre eigenen Angaben. Planer und Administratoren (shifts.manage) sehen alle, können
+Angaben auch für andere pflegen (z. B. für Mitarbeiter ohne Smartphone) und bekommen beim Einplanen einen
+Hinweis (siehe services/rules.py). Es sind nur Hinweise, keine Sperren.
+Einträge gelten wöchentlich (weekday) oder nur für einen einzelnen Tag (on_date).
 """
 from typing import Optional
 
@@ -29,7 +31,7 @@ def list_availability(user_id: Optional[int] = None, user=Depends(get_current_us
             raise HTTPException(403, "Keine Berechtigung")
         get_user_or_404(db, user.tenant_id, user_id)
     q = q.where(Availability.user_id == (user_id if user_id is not None else user.id))
-    return db.scalars(q.order_by(Availability.weekday, Availability.start_time)).all()
+    return db.scalars(q.order_by(Availability.on_date.is_not(None), Availability.on_date, Availability.weekday, Availability.start_time)).all()
 
 
 @router.get("/all", response_model=list[AvailabilityOut])
@@ -39,14 +41,22 @@ def list_all(user=Depends(require("shifts.manage")), db: Session = Depends(get_d
 
 
 @router.put("", response_model=list[AvailabilityOut])
-def replace_own(body: AvailabilityListIn, request: Request, user=Depends(get_current_user),
-                db: Session = Depends(get_db)):
-    """Ersetzt die eigene Liste vollständig (einfach und konfliktfrei bei mehreren Geräten)."""
-    db.execute(delete(Availability).where(Availability.user_id == user.id))
-    rows = [Availability(tenant_id=user.tenant_id, user_id=user.id, **i.model_dump()) for i in body.items]
+def replace(body: AvailabilityListIn, request: Request, user_id: Optional[int] = None,
+            user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Ersetzt die Liste vollständig (einfach und konfliktfrei bei mehreren Geräten).
+    Ohne user_id: eigene Liste. Mit user_id einer anderen Person: nur mit Recht shifts.manage (wird protokolliert)."""
+    target = user
+    if user_id is not None and user_id != user.id:
+        if "shifts.manage" not in permissions_for(db, user):
+            raise HTTPException(403, "Keine Berechtigung")
+        target = get_user_or_404(db, user.tenant_id, user_id)
+    db.execute(delete(Availability).where(Availability.user_id == target.id,
+                                          Availability.tenant_id == user.tenant_id))
+    rows = [Availability(tenant_id=user.tenant_id, user_id=target.id, **i.model_dump()) for i in body.items]
     db.add_all(rows)
     db.flush()
-    audit(db, user, "availability.update", f"anzahl={len(rows)}", request)
+    audit(db, user, "availability.update",
+          f"anzahl={len(rows)}" + (f" fuer_user={target.id}" if target.id != user.id else ""), request)
     db.commit()
     changed(user.tenant_id, "availability")
     return rows

@@ -231,6 +231,7 @@ class Availability(Base):
     start_time: Mapped[str] = mapped_column(String(5), default="00:00")  # HH:MM
     end_time: Mapped[str] = mapped_column(String(5), default="23:59")
     note: Mapped[str] = mapped_column(String(200), default="")
+    on_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)   # gesetzt = nur dieser eine Tag, sonst wöchentlich
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

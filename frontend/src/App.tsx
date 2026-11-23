@@ -7,6 +7,7 @@ import { Spinner } from "./ui";
 import { Login, ResetConfirm, ResetRequest } from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Schedule from "./pages/Schedule";
+import AvailabilityManage from "./pages/Availability";
 import Swaps from "./pages/Swaps";
 import Leave from "./pages/Leave";
 import Time from "./pages/Time";
@@ -108,6 +109,7 @@ export default function App() {
           <Route element={<Protected />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/plan" element={<Guard perm={["shifts.view"]}><Schedule /></Guard>} />
+            <Route path="/verfuegbarkeit" element={<Guard perm={["shifts.manage"]}><AvailabilityManage /></Guard>} />
             <Route path="/tausch" element={<Guard perm={["shifts.view"]}><Swaps /></Guard>} />
             <Route path="/urlaub" element={<Guard perm={["leave.request", "leave.approve"]}><Leave /></Guard>} />
             <Route path="/zeit" element={<Guard perm={["time.clock", "time.approve"]}><Time /></Guard>} />

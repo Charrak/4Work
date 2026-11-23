@@ -29,7 +29,7 @@
 - „Woche kopieren“ rechnet Wochengrenzen in UTC; Schichten, die lokal vor ca. 02:00 Uhr beginnen, können in die Nachbarwoche fallen.
 - Urlaub: Arbeitstage je Person (Teilzeit), NRW-Feiertage; keine halben Tage, keine Wochenstunden-Modelle, Anträge über den Jahreswechsel zählen zum Startjahr.
 - Überstunden = gearbeitet minus Soll der bereits beendeten Schichten; kein Überstundenkonto über Monate.
-- Verfügbarkeit: nur wiederkehrend je Wochentag; Einmalwünsche über „Wunschfrei“.
+- Verfügbarkeit: wöchentlich oder einzelner Tag (Nichtverfügbarkeit), von Planern/Administratoren auch für andere pflegbar (protokolliert). Es gibt keine positiven „Wunschzeiten“; Einmalwünsche über „Wunschfrei“. Nur Hinweis beim Planen, keine Sperre.
 - Kein Rollen-/Rechte-Feintuning pro Abteilung.
 - Push-Nachrichten optional (VAPID-Schlüssel); auf iOS nur bei installierter App.
 - Dokumente und Backups sind verschlüsselt (AES-256-GCM), die laufende PostgreSQL-Datenbank nicht (Festplattenverschlüsselung des Servers empfohlen). Kein Virenscan. Die Schlüssel liegen in der `.env` auf dem Server: Wer den Server übernimmt, hat auch die Schlüssel – der Schutz gilt für gestohlene Backups/Platten, nicht für einen kompromittierten Server.

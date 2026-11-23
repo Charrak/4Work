@@ -37,7 +37,7 @@ class Settings:
     enable_api_docs: bool
     documents_key: str
     backup_passphrase: str
-    version: str = "1.7.1"
+    version: str = "1.8.0"
 
 
 def load_settings() -> Settings:

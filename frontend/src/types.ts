@@ -60,5 +60,5 @@ export const KIND_LABEL: Record<string, string> = {
 export const DOC_CATEGORY: Record<string, string> = {
   vertrag: "Vertrag", attest: "Attest / Krankschreibung", schulung: "Schulung / Nachweis", allgemein: "Firmendokument", sonstiges: "Sonstiges",
 };
-export interface AvailabilityItem { weekday: number; start_time: string; end_time: string; note: string }
+export interface AvailabilityItem { weekday: number | null; on_date: string | null; start_time: string; end_time: string; note: string }
 export const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];

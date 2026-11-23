@@ -209,6 +209,48 @@ def test_availability_warning_and_privacy(world):
     assert admin.post("/api/shifts", json=body).status_code == 201
 
 
+def test_availability_single_day_and_weekly_distinct(world):
+    admin, dept, uid = world["admin"], world["dept"], world["ids"]["anna"]
+    mon = _free_monday()
+    tue = mon + timedelta(days=1)
+    anna = world["new_client"]("anna@test.de")
+    r = anna.put("/api/availability", json={"items": [{"on_date": tue.isoformat(), "start_time": "08:00", "end_time": "16:00", "note": "Arzt"}]})
+    assert r.status_code == 200, r.text
+    assert r.json()[0]["on_date"] == tue.isoformat() and r.json()[0]["weekday"] == 1     # Wochentag wird abgeleitet
+    # Entweder Wochentag oder Datum
+    assert anna.put("/api/availability", json={"items": [{"start_time": "08:00", "end_time": "09:00"}]}).status_code == 422
+    anna.put("/api/availability", json={"items": [{"on_date": tue.isoformat(), "start_time": "08:00", "end_time": "16:00", "note": "Arzt"}]})
+    body = {"department_id": dept, "user_id": uid, "start": _utc(tue, "09:00"), "end": _utc(tue, "12:00")}
+    r = admin.post("/api/shifts", json=body)
+    assert r.status_code == 422 and "nicht verfügbar" in r.json()["detail"]["message"]
+    # Derselbe Wochentag in der Folgewoche ist frei (Einzeltag ≠ wöchentlich)
+    nxt = tue + timedelta(days=7)
+    ok = {**body, "start": _utc(nxt, "09:00"), "end": _utc(nxt, "12:00")}
+    assert admin.post("/api/shifts", json=ok).status_code == 201
+
+
+def test_planner_and_admin_can_maintain_availability_for_others(world):
+    admin, ids = world["admin"], world["ids"]
+    anna = world["new_client"]("anna@test.de")
+    ben = world["new_client"]("ben@test.de")
+    item = {"weekday": 2, "start_time": "00:00", "end_time": "12:00", "note": "pflegt Angehörige"}
+    # Admin pflegt für Anna
+    r = admin.put(f"/api/availability?user_id={ids['anna']}", json={"items": [item]})
+    assert r.status_code == 200 and r.json()[0]["user_id"] == ids["anna"]
+    assert len(anna.get("/api/availability").json()) == 1
+    assert admin.get("/api/availability").json() == []                      # eigene Liste des Admins unberührt
+    # Planer darf ebenfalls
+    planer = world["new_client"]("planer@test.de")
+    assert planer.put(f"/api/availability?user_id={ids['anna']}", json={"items": []}).status_code == 200
+    assert anna.get("/api/availability").json() == []
+    # Normale Mitarbeiter dürfen nicht für andere ändern
+    assert ben.put(f"/api/availability?user_id={ids['anna']}", json={"items": [item]}).status_code == 403
+    # Protokoll nennt die betroffene Person
+    log = admin.get("/api/admin/audit?limit=200").json()
+    rows = log["items"] if isinstance(log, dict) else log
+    assert any(x["action"] == "availability.update" and f"fuer_user={ids['anna']}" in x["detail"] for x in rows)
+
+
 # ---------- v1.3: Mindestlohn, Höchstarbeitszeit, Vertragsstunden ----------
 def test_minimum_wage_warning_and_override(world):
     admin = world["admin"]

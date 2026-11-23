@@ -6,6 +6,7 @@ import { useLoad } from "../hooks";
 import { fmtDate, fmtDateTime } from "../dates";
 import { DOC_CATEGORY, ROLE_LABEL, WEEKDAYS, type Dept, type Role } from "../types";
 import { Badge, Btn, Card, Empty, ErrorBox, Field, Spinner } from "../ui";
+import { AvailabilityCard } from "./Availability";
 
 interface FileData {
   profile: { id: number; version: number; name: string; email: string; role: Role; is_active: boolean; department_ids: number[];
@@ -120,6 +121,8 @@ export default function Personnel() {
           <tr><td>Tage über Höchstarbeitszeit</td><td className="num">{d.time.over_limit_days ?? 0}</td><td>Wochen über Höchstarbeitszeit</td><td className="num">{d.time.over_limit_weeks ?? 0}</td></tr>
         </tbody></table></div>
       </Card>
+
+      <AvailabilityCard userId={d.profile.id} title="Verfügbarkeit" />
 
       <Card title="Dokumente">
         {d.documents.length === 0 && <Empty>{can("documents.manage") ? "Keine Dokumente." : "Dokumente sehen nur Nutzer mit dem Recht „Dokumente verwalten“."}</Empty>}

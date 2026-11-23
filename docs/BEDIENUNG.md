@@ -21,7 +21,8 @@ Die Software kennt drei Rollen. Welche Menüpunkte Sie sehen, hängt von Ihrer R
 **Schicht tauschen:** Schicht antippen → „Tausch anfragen“. Kollegen derselben Abteilung sehen die Anfrage unter *Tausch* und können sie übernehmen. Danach muss der Planer den Tausch freigeben – erst dann ändert sich der Plan.
 **Offene Schichten:** unter *Tausch* → „Offene Schichten“ → „Übernehmen“. Je nach Einstellung gehört sie Ihnen sofort oder erst nach Freigabe.
 **Urlaub und Abwesenheit:** *Urlaub* → Art wählen (Urlaub, Krankmeldung, Sonderurlaub, Wunschfrei) → Zeitraum → „Senden“. Nur Urlaub zählt gegen das Urlaubskonto (nur Ihre regulären Arbeitstage, Standard Mo–Fr; gesetzliche Feiertage in NRW werden nicht abgezogen). Krankmeldungen dürfen rückwirkend erfasst werden. Unten sehen Sie, wer in den nächsten 60 Tagen abwesend ist (ohne Grund). Offene Anträge können Sie stornieren.
-**Verfügbarkeit:** *Mehr → Profil → Meine Verfügbarkeit*: wiederkehrende Zeiten eintragen, an denen Sie nicht arbeiten können.
+**Verfügbarkeit:** *Mehr → Profil → Meine Verfügbarkeit*: Zeiten eintragen, an denen Sie nicht arbeiten können – „Jede Woche“ (z. B. montags bis 12 Uhr) oder „Einzelner Tag“ (z. B. 12.12. wegen Arzttermin). Vergangene Einzeltage verschwinden beim nächsten Speichern.
+**Verfügbarkeit für andere pflegen (Planer/Administrator):** im Dienstplan auf „Verfügbarkeiten“ → Person wählen, oder in der Personalakte. Nützlich für Mitarbeiter ohne Smartphone. Jede Änderung wird protokolliert.
 **Dokumente:** Menü *Dokumente*: Firmendokumente lesen, eigene Verträge ansehen, Krankschreibungen hochladen (PDF/Foto, max. 10 MB).
 **Chat:** Nachrichten an das ganze Team.
 **Meine Daten:** Profil → „Daten herunterladen“ (Auskunft nach DSGVO).

@@ -96,12 +96,22 @@ def shift_warnings(db, tenant_id: int, user_id: int, start: datetime, end: datet
                 money += _net(o) * rt.rate(user_id, lo.date())
         if money > limit + 1e-9:
             out.append(f"Minijob-Grenze: geplanter Verdienst im Monat {m_month:02d}/{m_year} = {money:.2f} € (Grenze {limit:.2f} €, ohne Zuschläge)")
-    # Verfügbarkeit
+    # Verfügbarkeit (wöchentlich oder einzelner Tag)
     ls, le = to_local(start), to_local(end)
     names = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
     for a in db.scalars(select(Availability).where(
             Availability.tenant_id == tenant_id, Availability.user_id == user_id)).all():
-        if ls.weekday() == a.weekday and ls.date() == le.date():
+        if a.on_date is not None:
+            if not (ls.date() <= a.on_date <= le.date()):
+                continue
+            label = f"am {a.on_date.strftime('%d.%m.%Y')}"
+            if ls.date() == le.date():
+                if ls.strftime("%H:%M") < a.end_time and le.strftime("%H:%M") > a.start_time:
+                    out.append(f"Person ist laut Verfügbarkeit {label} {a.start_time}–{a.end_time} nicht verfügbar"
+                               + (f" ({a.note})" if a.note else ""))
+            else:
+                out.append(f"Schicht über Mitternacht berührt eine Nichtverfügbarkeit {label}")
+        elif ls.weekday() == a.weekday and ls.date() == le.date():
             if ls.strftime("%H:%M") < a.end_time and le.strftime("%H:%M") > a.start_time:
                 out.append(f"Person ist laut Verfügbarkeit am {names[a.weekday]} {a.start_time}–{a.end_time} nicht verfügbar"
                            + (f" ({a.note})" if a.note else ""))

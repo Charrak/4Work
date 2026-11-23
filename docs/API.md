@@ -18,7 +18,7 @@ Die interaktive Dokumentation (OpenAPI) liegt unter **`/api/docs`** (Swagger), `
 | Urlaub/Abwesenheit | `GET/POST /api/leave` (Feld `kind`: vacation, sick, special, wish), `GET /api/leave/balance`, `POST /api/leave/{id}/decide\|cancel`, `GET /api/leave/absences?start&end` (Kollegen sehen nur „absent“, nie den Grund) |
 | Schichtvorlagen | `GET/POST /api/shift-templates`, `PATCH/DELETE /api/shift-templates/{id}` |
 | Dokumente | `GET /api/documents`, `POST /api/documents?filename&title&category&user_id` (Datei als roher Request-Body), `GET /api/documents/{id}/download`, `DELETE /api/documents/{id}` |
-| Verfügbarkeit | `GET /api/availability[?user_id]` (fremde nur mit Planerrecht), `GET /api/availability/all` (Planer), `PUT /api/availability` (ersetzt die eigene Liste) |
+| Verfügbarkeit | `GET /api/availability[?user_id]` (fremde nur mit Planerrecht), `GET /api/availability/all` (Planer), `PUT /api/availability[?user_id]` (ersetzt die eigene Liste; fremde nur mit Planerrecht, wird protokolliert). Einträge: `weekday` (wöchentlich) **oder** `on_date` (nur dieser Tag) |
 | Lohn | `GET /api/users/{id}/wages` (Stundensatz-Verlauf; `PATCH /api/users/{id}` mit `hourly_rate` und optional `rate_valid_from`), Benutzerfelder `weekly_hours`, `is_minor`, `is_minijob`, `work_days` |
 | Personalakte | `GET /api/personnel/{id}` (Stamm-, Vertrags-, Lohn-, Urlaubs-, Arbeitszeitdaten, Dokumente nur mit `documents.manage`, Verlauf; Abruf wird protokolliert), `PUT /api/personnel/{id}` (Telefon, Funktion, Eintritt, Vertragsende, interne Notiz) – beides nur mit `users.manage` |
 | Firma | `GET /api/auth/company` (Firmenname, Datenschutz-Ansprechpartner) |

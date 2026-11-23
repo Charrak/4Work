@@ -370,7 +370,9 @@ class CompanyOut(BaseModel):
 
 
 class AvailabilityIn(BaseModel):
-    weekday: int = Field(ge=0, le=6)
+    """weekday = wöchentlich wiederkehrend; on_date = nur dieser eine Tag (weekday wird daraus abgeleitet)."""
+    weekday: Optional[int] = Field(default=None, ge=0, le=6)
+    on_date: Optional[date] = None
     start_time: str = "00:00"
     end_time: str = "23:59"
     note: str = Field(default="", max_length=200)
@@ -382,6 +384,10 @@ class AvailabilityIn(BaseModel):
                 raise ValueError("Uhrzeit im Format HH:MM angeben")
         if self.end_time <= self.start_time:
             raise ValueError("Das Ende muss nach dem Beginn liegen")
+        if self.on_date is not None:
+            self.weekday = self.on_date.weekday()
+        elif self.weekday is None:
+            raise ValueError("Wochentag oder Datum angeben")
         return self
 
 
@@ -392,6 +398,7 @@ class AvailabilityListIn(BaseModel):
 class AvailabilityOut(AvailabilityIn):
     id: int
     user_id: int
+    weekday: int
 
 
 class WageOut(ORM):
