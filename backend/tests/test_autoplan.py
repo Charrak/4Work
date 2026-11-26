@@ -164,7 +164,7 @@ def test_casual_has_no_hour_account_and_notice_period(world):
     admin, ids = world["admin"], world["ids"]
     # Anna Stammkraft 20 h, Ben Aushilfe (trotz hinterlegter Wochenstunden kein Soll/Ziel)
     assert admin.patch(f"/api/users/{ids['anna']}", json={"version": 1, "weekly_hours": 20}).status_code == 200
-    r = admin.patch(f"/api/users/{ids['ben']}", json={"version": 1, "weekly_hours": 20, "is_casual": True})
+    r = admin.patch(f"/api/users/{ids['ben']}", json={"version": 1, "weekly_hours": 20, "is_casual": True, "work_days": "1234567"})
     assert r.status_code == 200 and r.json()["is_casual"] is True
     mon = next_monday()
     h = admin.get(f"/api/autoplan/hours?day={mon}&department_id={world['dept']}").json()
