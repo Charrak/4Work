@@ -66,6 +66,7 @@ export default function Schedule() {
         </select>
         {manage && <Btn onClick={publish} kind="primary">Veröffentlichen{drafts ? ` (${drafts})` : ""}</Btn>}
         {manage && <Btn onClick={copyToNext}>Woche kopieren</Btn>}
+        {manage && <Link className="btn" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }} to="/autoplaner">Autoplaner</Link>}
         {can("availability.manage") && <Link className="btn" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }} to="/verfuegbarkeit">Verfügbarkeiten</Link>}
       </div>
       <ErrorBox error={shifts.error} onRetry={shifts.reload} />

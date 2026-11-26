@@ -43,3 +43,12 @@
 - Docker, Caddy, Skripte: Syntax geprüft (`bash -n`, YAML), **nicht gegen einen echten Server ausgeführt**. Erster Schritt: Installation auf einem Testserver, danach `./scripts/smoke-test.sh`, `./scripts/backup.sh` und eine Probe-Wiederherstellung.
 - Die Datei `.github/workflows/ci.yml` führt Backend-Tests und Frontend-Build bei jedem Push in GitHub automatisch aus.
 - Nicht automatisiert prüfbar ohne echte Geräte: PWA-Installation auf Android/iOS/Windows/macOS, Push, Offline-Verhalten im Browser, Serverneustart.
+
+
+## Autoplaner (v1.10)
+
+- **Verfahren:** deterministisches Greedy in zeitlicher Reihenfolge; je Schicht erhält die Person mit der geringsten Auslastung (geplant / Ziel) die Schicht, sofern alle Regeln eingehalten werden. Nachvollziehbar und ohne Zufall; kein mathematischer Optimierer (kann in Einzelfällen eine lokal bessere Verteilung übersehen – der Planer korrigiert im Dienstplan).
+- **Harte Sperren:** Vertragszeitraum, Arbeitstage (abschaltbar), genehmigter Urlaub, Verfügbarkeit, Überschneidung, Stundenbudget, Ruhezeit, Tages-/Wochenmaximum, Wochenstunden laut Vertrag, Jugendschutz, Minijob-Grenze (dieselben Regeln wie beim manuellen Planen, nur ohne „Trotzdem speichern“).
+- **Abrechnungszeitraum:** Einstellung `period_start_day` (15). Soll anteilig bei Ein-/Austritt; Urlaub/Krank an Arbeitstagen zählt als erfüllt. Die bestehende Minijob-Warnung beim manuellen Planen prüft weiterhin den Kalendermonat; der Autoplaner zusätzlich den Abrechnungszeitraum. Welcher Zeitraum für die Minijob-Grenze maßgeblich ist, bitte mit der Lohnbuchhaltung/dem Steuerberater klären.
+- **Datenschutz:** Der Planer sieht keine Begründungstexte der Verfügbarkeit (nur „nicht verfügbar“). Übernommene Schichten bleiben unveröffentlicht, bis ein Mensch sie freigibt (keine automatisierte Entscheidung ohne menschliche Prüfung).
+- **Nicht enthalten:** Wünsche/Präferenzen (z. B. „lieber früh“), Qualifikationen je Schicht, Feiertagszuschläge im Vorschlag, Mindestbesetzung je Tageszeit als Dauerregel.

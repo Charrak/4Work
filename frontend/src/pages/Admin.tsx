@@ -311,6 +311,7 @@ function SettingsTab() {
   const [sh, setSh] = useState<string | null>(null);
   const [mj, setMj] = useState<string | null>(null);
   const [blk, setBlk] = useState<boolean | null>(null);
+  const [psd, setPsd] = useState<string | null>(null);
   const save = async () => {
     const values: Record<string, string> = {};
     if (company !== null) values.company_name = company;
@@ -324,6 +325,7 @@ function SettingsTab() {
     if (sh !== null) values.surcharge_holiday_pct = sh;
     if (mj !== null) values.minijob_limit = mj;
     if (blk !== null) values.block_clock_over_limit = blk ? "1" : "0";
+    if (psd !== null) values.period_start_day = psd;
     try { await put("/admin/settings", { values }); toast("Gespeichert"); s.reload(); } catch (e) { toast((e as Error).message, "error"); }
   };
   if (s.loading && !s.data) return <Spinner />;
@@ -334,6 +336,7 @@ function SettingsTab() {
         <Field label="Firmenname"><input value={company ?? s.data?.company_name ?? ""} onChange={(e) => setCompany(e.target.value)} /></Field>
         <Field label="Standard-Urlaubstage pro Jahr" hint="Vorgabe für neue Benutzer"><input inputMode="numeric" value={vac ?? s.data?.default_vacation_days ?? "30"} onChange={(e) => setVac(e.target.value)} /></Field>
         <Field label="Datenschutz-Ansprechpartner" hint="Wird allen Mitarbeitern unter „Datenschutz“ angezeigt (Name, E-Mail, Telefon)"><input value={pc ?? s.data?.privacy_contact ?? ""} maxLength={300} onChange={(e) => setPc(e.target.value)} /></Field>
+        <Field label="Abrechnungszeitraum beginnt am Tag (1–28)" hint="15 = vom 15. bis zum 14. des Folgemonats (Autoplaner und Stundenübersicht); 1 = Kalendermonat"><input inputMode="numeric" maxLength={2} value={psd ?? s.data?.period_start_day ?? "15"} onChange={(e) => setPsd(e.target.value)} /></Field>
         <Field label="Gesetzlicher Mindestlohn (€/Std.)" hint="Beim Speichern eines niedrigeren Stundenlohns erscheint ein Hinweis. Bitte bei Änderung des Mindestlohns anpassen."><input inputMode="decimal" value={mw ?? s.data?.minimum_wage ?? "13.9"} onChange={(e) => setMw(e.target.value)} /></Field>
         <div className="row">
           <div className="grow"><Field label="Höchstarbeitszeit pro Tag (h)" hint="Gesetz: 10 h"><input inputMode="decimal" value={md ?? s.data?.max_daily_hours ?? "10.0"} onChange={(e) => setMd(e.target.value)} /></Field></div>

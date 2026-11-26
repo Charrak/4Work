@@ -519,3 +519,49 @@ class TaskTemplateIn(BaseModel):
 class TaskTemplateOut(TaskTemplateIn):
     id: int
     last_generated: Optional[date] = None
+
+
+_HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+class AutoplanSlotIn(BaseModel):
+    """Bedarf: an diesen Wochentagen (0 = Mo … 6 = So) werden `count` Personen für die Zeit benötigt."""
+    weekdays: list[int] = Field(min_length=1, max_length=7)
+    template_id: Optional[int] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    break_minutes: int = Field(default=0, ge=0, le=240)
+    count: int = Field(default=1, ge=1, le=20)
+    note: str = Field(default="", max_length=500)
+
+    @model_validator(mode="after")
+    def _check(self):
+        if any(d < 0 or d > 6 for d in self.weekdays):
+            raise ValueError("Wochentage müssen 0 (Montag) bis 6 (Sonntag) sein")
+        self.weekdays = sorted(set(self.weekdays))
+        if not self.template_id:
+            if not (self.start_time and self.end_time and _HHMM.match(self.start_time) and _HHMM.match(self.end_time)):
+                raise ValueError("Bitte eine Schichtvorlage oder Beginn und Ende (HH:MM) angeben")
+            if self.start_time == self.end_time:
+                raise ValueError("Beginn und Ende dürfen nicht gleich sein")
+        return self
+
+
+class AutoplanIn(BaseModel):
+    department_id: int
+    start: date
+    end: date
+    slots: list[AutoplanSlotIn] = Field(min_length=1, max_length=20)
+    apply: bool = False                 # false = nur Vorschau
+    create_open: bool = False           # nicht besetzbare Schichten als offene Schichten anlegen (zum Übernehmen)
+    overtime_pct: float = Field(default=0.0, ge=0, le=25)
+    respect_work_days: bool = True      # nur an den Arbeitstagen laut Vertrag einteilen
+    user_ids: Optional[list[int]] = Field(default=None, max_length=200)
+
+    @model_validator(mode="after")
+    def _check(self):
+        if self.end < self.start:
+            raise ValueError("Das Ende muss nach dem Beginn liegen")
+        if (self.end - self.start).days > 62:
+            raise ValueError("Der Zeitraum darf höchstens 63 Tage umfassen")
+        return self

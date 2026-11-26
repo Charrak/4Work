@@ -30,3 +30,13 @@ Die interaktive Dokumentation (OpenAPI) liegt unter **`/api/docs`** (Swagger), `
 | System | `GET /api/health` (ohne Anmeldung), `WS /api/ws` (Echtzeit-Ereignisse) |
 
 **WebSocket-Ereignisse** (`{"event": "...", "data": {...}}`): `shifts.changed`, `swaps.changed`, `leave.changed`, `time.changed`, `users.changed`, `chat.message`, `notification`. Sie sagen dem Client nur, *dass* er neu laden soll – Daten werden immer über die geprüfte REST-API abgerufen.
+
+
+## Autoplaner (v1.10, Recht `shifts.manage`)
+
+- `POST /api/autoplan` – Body: `department_id`, `start`, `end` (max. 63 Tage), `slots[]` (`weekdays` 0=Mo…6=So, `template_id` **oder** `start_time`/`end_time`, `break_minutes`, `count`, `note`),
+  `apply` (false = nur Vorschau, wird zurückgerollt), `create_open` (nicht besetzbare Schichten als offene Schichten anlegen),
+  `overtime_pct` (0–25), `respect_work_days`, `user_ids` (optional einschränken). Antwort: `created[]`, `unfilled[]` (mit Gründen), `counts`, `people[]` (Stunden je Person und Abrechnungszeitraum), `periods[]`.
+  Übernommene Schichten sind **unveröffentlicht**; Protokoll `autoplan.apply`.
+- `GET /api/autoplan/hours?day=&department_id=&overtime_pct=` – Soll / Urlaub / Ziel („von“) / Max („bis“) / gesamt / Rest je Person im Abrechnungszeitraum, in dem `day` liegt.
+- Einstellung `period_start_day` (1–28, Standard 15 = vom 15. bis 14.) unter `PUT /api/admin/settings`.

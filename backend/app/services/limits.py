@@ -11,6 +11,7 @@ DEFAULTS = {
     "surcharge_sunday_pct": 0.0,
     "surcharge_holiday_pct": 0.0,
     "minijob_limit": 603.0,     # Minijob-Monatsgrenze 2026 (€); ändert sich mit dem Mindestlohn – bitte prüfen
+    "period_start_day": 15.0,   # Abrechnungszeitraum: Starttag im Monat (15 = vom 15. bis 14.; 1 = Kalendermonat)
     "block_clock_over_limit": 0.0,  # 1 = Einstempeln wird bei Überschreitung gesperrt
 }
 

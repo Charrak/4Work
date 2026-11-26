@@ -98,10 +98,17 @@ def shift_warnings(db, tenant_id: int, user_id: int, start: datetime, end: datet
         if money > limit + 1e-9:
             out.append(f"Minijob-Grenze: geplanter Verdienst im Monat {m_month:02d}/{m_year} = {money:.2f} € (Grenze {limit:.2f} €, ohne Zuschläge)")
     # Verfügbarkeit (wöchentlich oder einzelner Tag)
-    ls, le = to_local(start), to_local(end)
+    rows = db.scalars(select(Availability).where(
+        Availability.tenant_id == tenant_id, Availability.user_id == user_id)).all()
+    out.extend(availability_conflicts(rows, to_local(start), to_local(end), show_notes))
+    return out
+
+
+def availability_conflicts(rows, ls: datetime, le: datetime, show_notes: bool = False) -> list[str]:
+    """Konflikte einer Schicht (lokale Zeit ls–le) mit Nichtverfügbarkeiten (wöchentlich oder einzelner Tag)."""
+    out: list[str] = []
     names = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-    for a in db.scalars(select(Availability).where(
-            Availability.tenant_id == tenant_id, Availability.user_id == user_id)).all():
+    for a in rows:
         if a.on_date is not None:
             if not (ls.date() <= a.on_date <= le.date()):
                 continue

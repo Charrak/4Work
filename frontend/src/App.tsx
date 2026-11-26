@@ -17,6 +17,7 @@ import Admin from "./pages/Admin";
 import Documents from "./pages/Documents";
 import Personnel from "./pages/Personnel";
 import Privacy from "./pages/Privacy";
+import Autoplan from "./pages/Autoplan";
 import Tasks from "./pages/Tasks";
 import { More, Profile } from "./pages/Profile";
 
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/plan" element={<Guard perm={["shifts.view"]}><Schedule /></Guard>} />
             <Route path="/verfuegbarkeit" element={<Guard perm={["availability.manage"]}><AvailabilityManage /></Guard>} />
+            <Route path="/autoplaner" element={<Guard perm={["shifts.manage"]}><Autoplan /></Guard>} />
             <Route path="/aufgaben" element={<Guard perm={["tasks.do", "tasks.create", "tasks.manage"]}><Tasks /></Guard>} />
             <Route path="/tausch" element={<Guard perm={["shifts.view"]}><Swaps /></Guard>} />
             <Route path="/urlaub" element={<Guard perm={["leave.request", "leave.approve"]}><Leave /></Guard>} />

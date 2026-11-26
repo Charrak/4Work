@@ -86,3 +86,18 @@ export interface TaskStats {
   days: { date: string; total: number; done: number }[];
 }
 export const PRIORITY_LABEL = ["niedrig", "normal", "hoch"];
+
+export interface AutoplanSlot { weekdays: number[]; template_id: number | null; start_time: string; end_time: string; break_minutes: number; count: number }
+export interface AutoplanPerson {
+  user_id: number; name: string; period_start: string; period_end: string; weekly_hours: number | null; is_minijob: boolean;
+  soll_h: number | null; urlaub_h: number; ziel_h: number | null; max_h: number | null; minijob_max_h: number | null;
+  geplant_vorher_h?: number; neu_h?: number; gesamt_h: number; rest_h: number | null; verfuegbar_h?: number; moeglich_h?: number;
+}
+export interface AutoplanResult {
+  applied: boolean; start_day: number; periods: { start: string; end: string }[];
+  counts: { created?: number; filled_existing?: number; open_created?: number; unfilled?: number };
+  created: { shift_id: number | null; date: string; start: string; end: string; user_id: number | null; user_name: string | null; open: boolean; hours: number; break_minutes: number }[];
+  unfilled: { date: string; start: string; end: string; missing: number; reasons: Record<string, number> }[];
+  people: AutoplanPerson[];
+}
+export interface HoursOverview { period_start: string; period_end: string; start_day: number; people: AutoplanPerson[] }

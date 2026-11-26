@@ -53,3 +53,12 @@ Wiederkehrende Aufgaben entstehen, sobald jemand die App öffnet; versäumte Tag
 - **Backups:** Backup erstellen und herunterladen. Wiederherstellen geschieht auf dem Server (siehe WARTUNG.md).
 
 **Empfehlung zum Start:** zweiten Administrator anlegen, Abteilungen prüfen, Mitarbeiter mit Abteilung anlegen, dann die erste Woche planen und veröffentlichen.
+
+
+## Autoplaner (Planer)
+
+Dienstplan → **Autoplaner**. 1) Abteilung wählen: oben steht der **Stundenrahmen** des Abrechnungszeitraums (Standard 15.–14.): *Soll* (Wochenstunden × Tage/7), *Urlaub* (zählt als erfüllt), *Von* (= Ziel), *Bis* (= Max, optional mit Überstunden-Spielraum; bei Minijob Verdienstgrenze ÷ Stundensatz), *Gesamt* und *Rest*.
+2) **Bedarf** festlegen: Zeitraum, Wochentage, Vorlage oder Uhrzeiten, Anzahl Personen (mehrere Bedarfszeilen möglich).
+3) **Vorschlag berechnen**: Es wird nichts gespeichert. Angezeigt werden Besetzung, nicht besetzbare Schichten mit Gründen (z. B. „nicht verfügbar“, „Urlaub“, „Stundenbudget erreicht“) und die Stunden je Person.
+4) **Übernehmen**: Die Schichten werden angelegt, aber noch nicht veröffentlicht. Im Dienstplan prüfen, anpassen und veröffentlichen. Ein zweiter Lauf legt nichts doppelt an und befüllt vorhandene offene Schichten.
+Der Starttag des Abrechnungszeitraums steht unter Verwaltung → Einstellungen.

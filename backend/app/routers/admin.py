@@ -23,7 +23,7 @@ STARTED = time.time()
 ALLOWED_SETTINGS = {"company_name": 200, "timezone": 64, "default_vacation_days": 3, "privacy_contact": 300,
                     "minimum_wage": 8, "max_daily_hours": 5, "max_weekly_hours": 5,
                     "surcharge_night_pct": 6, "surcharge_sunday_pct": 6, "surcharge_holiday_pct": 6,
-                    "minijob_limit": 8, "block_clock_over_limit": 1}
+                    "minijob_limit": 8, "block_clock_over_limit": 1, "period_start_day": 2}
 
 
 @router.get("/audit")
@@ -56,7 +56,11 @@ def put_settings(body: SettingsIn, request: Request, user: User = Depends(requir
             raise HTTPException(422, f"Wert für {key} ist zu lang")
         if key == "default_vacation_days" and not (value.isdigit() and int(value) <= 365):
             raise HTTPException(422, "default_vacation_days muss eine Zahl bis 365 sein")
-        if key == "block_clock_over_limit":
+        if key == "period_start_day":
+            if not (value.isdigit() and 1 <= int(value) <= 28):
+                raise HTTPException(422, "period_start_day muss eine Zahl von 1 bis 28 sein")
+            value = str(int(value))
+        elif key == "block_clock_over_limit":
             value = "1" if value.strip().lower() in ("1", "true", "ja") else "0"
         elif key in ("minimum_wage", "max_daily_hours", "max_weekly_hours", "surcharge_night_pct",
                      "surcharge_sunday_pct", "surcharge_holiday_pct", "minijob_limit"):
