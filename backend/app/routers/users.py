@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_current_user, require
 from ..models import (Availability, WageHistory, Department, Document, LeaveRequest, Message, PushSubscription, RolePermission,
-                      Shift, ShiftClaim, TimeEntry, User)
+                      Shift, ShiftClaim, Task, TaskTemplate, TimeEntry, User)
 from ..permissions import ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS
 from ..schemas import (WageOut, DepartmentIn, DepartmentOut, RolePermissionsIn, SetPassword, UserCreate,
                        UserOut, UserUpdate)
@@ -237,6 +237,11 @@ def delete_user(user_id: int, request: Request, delete_documents: bool = False,
     target.deleted_at = now
     db.execute(delete(Message).where(Message.user_id == target.id))
     db.execute(delete(Availability).where(Availability.user_id == target.id))
+    # Offene Aufgaben dieser Person werden frei (gehen an die Abteilung bzw. alle); erledigte bleiben für die Statistik (Name anonymisiert)
+    for t in db.scalars(select(Task).where(Task.assignee_id == target.id, Task.status == "open")).all():
+        t.assignee_id = None
+    for t in db.scalars(select(TaskTemplate).where(TaskTemplate.assignee_id == target.id)).all():
+        t.assignee_id = None
     target.is_minor = False
     target.phone = target.job_title = target.hr_note = None
     target.hire_date = target.contract_end = None

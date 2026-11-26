@@ -15,7 +15,7 @@ from .hub import hub
 from .ratelimit import api_limiter
 from .logging_setup import setup_logging
 from . import models  # noqa: F401  (registriert alle Tabellen)
-from .routers import (admin, auth, availability, documents, personnel, leave, messages, reports, shifts, swaps, templates, time,
+from .routers import (admin, auth, availability, documents, personnel, leave, messages, reports, shifts, swaps, tasks, templates, time,
                       users)
 
 setup_logging()
@@ -93,7 +93,8 @@ def health():
 
 for r in (auth.router, users.router, users.roles_router, users.dept_router, shifts.router, swaps.router,
           leave.router, time.router, reports.router, messages.router, admin.router,
-          templates.router, documents.router, availability.router, personnel.router):
+          templates.router, documents.router, availability.router, personnel.router,
+          tasks.router, tasks.template_router):
     app.include_router(r)
 
 

@@ -245,3 +245,48 @@ class WageHistory(Base):
     valid_from: Mapped[date] = mapped_column(Date)
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class TaskTemplate(Base):
+    """Wiederkehrende Aufgabe/Checkliste. Die Aufgaben entstehen automatisch (siehe services/tasks.py)."""
+    __tablename__ = "task_templates"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(String(2000), default="")
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    weekdays: Mapped[str] = mapped_column(String(7), default="01234")      # 0 = Montag … 6 = Sonntag
+    due_time: Mapped[str] = mapped_column(String(5), default="18:00")      # Ortszeit
+    items: Mapped[str] = mapped_column(Text, default="[]")                 # JSON-Liste von Texten
+    require_comment: Mapped[bool] = mapped_column(Boolean, default=False)
+    priority: Mapped[int] = mapped_column(Integer, default=1)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    last_generated: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+    __table_args__ = (UniqueConstraint("template_id", "due_date"), Index("ix_tasks_tenant_status", "tenant_id", "status"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(String(2000), default="")
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    due_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)  # Ortsdatum bei wiederkehrenden Aufgaben
+    priority: Mapped[int] = mapped_column(Integer, default=1)              # 0 niedrig, 1 normal, 2 hoch
+    items: Mapped[str] = mapped_column(Text, default="[]")                 # JSON: [{text, done, by, at}]
+    require_comment: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(10), default="open")        # open | done
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    completion_comment: Mapped[str] = mapped_column(String(500), default="")
+    template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("task_templates.id", ondelete="SET NULL"), nullable=True)
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

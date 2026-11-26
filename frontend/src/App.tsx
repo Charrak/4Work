@@ -17,6 +17,7 @@ import Admin from "./pages/Admin";
 import Documents from "./pages/Documents";
 import Personnel from "./pages/Personnel";
 import Privacy from "./pages/Privacy";
+import Tasks from "./pages/Tasks";
 import { More, Profile } from "./pages/Profile";
 
 function OfflineBanner() {
@@ -54,6 +55,7 @@ function Layout() {
     { to: "/plan", label: "Dienstplan", icon: "📅", show: can("shifts.view"), mobile: true },
     { to: "/zeit", label: "Zeit", icon: "⏱️", show: can("time.clock") || can("time.approve"), mobile: true },
     { to: "/urlaub", label: "Urlaub", icon: "🌴", show: can("leave.request") || can("leave.approve"), mobile: true },
+    { to: "/aufgaben", label: "Aufgaben", icon: "✅", show: can("tasks.do") || can("tasks.create") || can("tasks.manage"), mobile: true },
     { to: "/tausch", label: "Tausch", icon: "🔁", show: can("shifts.view"), mobile: false },
     { to: "/chat", label: "Chat", icon: "💬", show: can("chat.use"), mobile: false },
     { to: "/dokumente", label: "Dokumente", icon: "📄", show: can("documents.view"), mobile: false },
@@ -110,6 +112,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/plan" element={<Guard perm={["shifts.view"]}><Schedule /></Guard>} />
             <Route path="/verfuegbarkeit" element={<Guard perm={["availability.manage"]}><AvailabilityManage /></Guard>} />
+            <Route path="/aufgaben" element={<Guard perm={["tasks.do", "tasks.create", "tasks.manage"]}><Tasks /></Guard>} />
             <Route path="/tausch" element={<Guard perm={["shifts.view"]}><Swaps /></Guard>} />
             <Route path="/urlaub" element={<Guard perm={["leave.request", "leave.approve"]}><Leave /></Guard>} />
             <Route path="/zeit" element={<Guard perm={["time.clock", "time.approve"]}><Time /></Guard>} />

@@ -405,3 +405,117 @@ class WageOut(ORM):
     id: int
     hourly_rate: float
     valid_from: date
+
+
+# ---------- Aufgaben ----------
+def _clean_items(v: list[str]) -> list[str]:
+    out = [x.strip() for x in v if x and x.strip()]
+    if any(len(x) > 200 for x in out):
+        raise ValueError("Ein Punkt darf höchstens 200 Zeichen lang sein")
+    return out
+
+
+class TaskIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    department_id: Optional[int] = None
+    assignee_id: Optional[int] = None
+    due_at: Optional[UTCDateTime] = None
+    priority: int = Field(default=1, ge=0, le=2)
+    items: list[str] = Field(default_factory=list, max_length=30)
+    require_comment: bool = False
+
+    @field_validator("items")
+    @classmethod
+    def _items(cls, v):
+        return _clean_items(v)
+
+    @field_validator("title")
+    @classmethod
+    def _title(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Titel fehlt")
+        return v
+
+
+class TaskUpdate(TaskIn):
+    version: int
+
+
+class CompleteIn(BaseModel):
+    comment: str = Field(default="", max_length=500)
+
+
+class ItemToggleIn(BaseModel):
+    done: bool
+
+
+class TaskItemOut(BaseModel):
+    text: str
+    done: bool
+    by_name: Optional[str] = None
+    at: Optional[UTCDateTime] = None
+
+
+class TaskOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    department_id: Optional[int]
+    department_name: Optional[str]
+    assignee_id: Optional[int]
+    assignee_name: Optional[str]
+    due_at: Optional[UTCDateTime]
+    priority: int
+    items: list[TaskItemOut]
+    require_comment: bool
+    status: str
+    completed_at: Optional[UTCDateTime]
+    completed_by: Optional[int]
+    completed_by_name: Optional[str]
+    completion_comment: str
+    template_id: Optional[int]
+    created_by: Optional[int]
+    created_by_name: Optional[str]
+    overdue: bool
+    can_complete: bool
+    can_edit: bool
+    version: int
+
+
+class TaskTemplateIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    department_id: Optional[int] = None
+    assignee_id: Optional[int] = None
+    weekdays: str = "01234"
+    due_time: str = "18:00"
+    items: list[str] = Field(default_factory=list, max_length=30)
+    require_comment: bool = False
+    priority: int = Field(default=1, ge=0, le=2)
+    active: bool = True
+
+    @field_validator("items")
+    @classmethod
+    def _items(cls, v):
+        return _clean_items(v)
+
+    @field_validator("weekdays")
+    @classmethod
+    def _wd(cls, v):
+        if not re.fullmatch(r"[0-6]{1,7}", v) or len(set(v)) != len(v):
+            raise ValueError("Wochentage als Ziffern 0 (Montag) bis 6 (Sonntag) angeben")
+        return "".join(sorted(v))
+
+    @field_validator("due_time")
+    @classmethod
+    def _hhmm(cls, v: str) -> str:
+        if not _HHMM.match(v):
+            raise ValueError("Uhrzeit im Format HH:MM angeben")
+        return v
+
+
+class TaskTemplateOut(TaskTemplateIn):
+    id: int
+    last_generated: Optional[date] = None

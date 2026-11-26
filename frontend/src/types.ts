@@ -62,3 +62,27 @@ export const DOC_CATEGORY: Record<string, string> = {
 };
 export interface AvailabilityItem { weekday: number | null; on_date: string | null; start_time: string; end_time: string; note: string }
 export const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+
+export interface TaskItem { text: string; done: boolean; by_name: string | null; at: string | null }
+export interface Task {
+  id: number; title: string; description: string; department_id: number | null; department_name: string | null;
+  assignee_id: number | null; assignee_name: string | null; due_at: string | null; priority: number;
+  items: TaskItem[]; require_comment: boolean; status: "open" | "done"; completed_at: string | null;
+  completed_by: number | null; completed_by_name: string | null; completion_comment: string;
+  template_id: number | null; created_by: number | null; created_by_name: string | null;
+  overdue: boolean; can_complete: boolean; can_edit: boolean; version: number;
+}
+export interface TaskTemplate {
+  id: number; title: string; description: string; department_id: number | null; assignee_id: number | null;
+  weekdays: string; due_time: string; items: string[]; require_comment: boolean; priority: number; active: boolean;
+  last_generated: string | null;
+}
+export interface TaskStatRow {
+  key: string; total: number; done: number; on_time: number; late: number; overdue: number; open: number;
+  done_rate: number | null; on_time_rate: number | null; avg_delay_min: number;
+}
+export interface TaskStats {
+  start: string; end: string; group_by: string; totals: TaskStatRow; groups: TaskStatRow[];
+  days: { date: string; total: number; done: number }[];
+}
+export const PRIORITY_LABEL = ["niedrig", "normal", "hoch"];

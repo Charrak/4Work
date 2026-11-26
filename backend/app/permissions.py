@@ -14,6 +14,11 @@ ALL_PERMISSIONS = {
     "roles.manage": "Rollen und Rechte verwalten",
     "reports.view": "Berichte und Lohnvorbereitung",
     "chat.use": "Team-Chat nutzen",
+    "tasks.do": "Eigene Aufgaben sehen und abhaken",
+    "tasks.create": "Aufgaben anlegen und zuweisen (eigene bearbeiten)",
+    "tasks.manage": "Alle Aufgaben und Checklisten-Vorlagen verwalten",
+    "tasks.stats": "Aufgaben-Statistik (nach Abteilung und Aufgabe)",
+    "tasks.stats_people": "Aufgaben-Statistik pro Person",
     "documents.view": "Dokumente ansehen (eigene und Firmendokumente)",
     "documents.manage": "Dokumente aller Personen verwalten",
     "settings.manage": "Einstellungen ändern",
@@ -23,9 +28,10 @@ ALL_PERMISSIONS = {
 
 # "benutzer" = Schichtmitarbeiter, "mitarbeiter" = Planer/Büro, "admin" = alles (fest verdrahtet)
 DEFAULT_ROLE_PERMISSIONS = {
-    "benutzer": ["shifts.view", "swap.request", "leave.request", "time.clock", "chat.use", "documents.view"],
+    "benutzer": ["shifts.view", "swap.request", "leave.request", "time.clock", "chat.use", "documents.view", "tasks.do"],
     "mitarbeiter": [
         "shifts.view", "shifts.manage", "availability.manage", "swap.request", "leave.request", "leave.approve",
         "time.clock", "time.approve", "users.view", "reports.view", "chat.use", "documents.view",
+        "tasks.do", "tasks.create", "tasks.manage", "tasks.stats",
     ],
 }
