@@ -62,6 +62,7 @@ class User(Base):
     hr_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)   # interne Notiz der Personalverwaltung
     is_minor: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     is_minijob: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    is_casual: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")  # Aushilfe: kein Stundenkonto/Soll
     minijob_limit: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # max. Verdienst/Monat; leer = Firmenvorgabe
     weekly_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     work_days: Mapped[str] = mapped_column(String(7), default="12345", server_default="12345")

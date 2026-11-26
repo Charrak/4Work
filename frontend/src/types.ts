@@ -2,7 +2,7 @@ export type Role = "admin" | "mitarbeiter" | "benutzer";
 
 export interface User {
   id: number; email: string; name: string; role: Role; is_active: boolean; is_locked: boolean;
-  hourly_rate: number | null; vacation_days: number; weekly_hours: number | null; is_minor: boolean; is_minijob: boolean; minijob_limit: number | null; work_days: string; department_ids: number[]; version: number;
+  hourly_rate: number | null; vacation_days: number; weekly_hours: number | null; is_minor: boolean; is_minijob: boolean; is_casual: boolean; minijob_limit: number | null; work_days: string; department_ids: number[]; version: number;
 }
 export interface Me extends User { permissions: string[] }
 export interface Dept { id: number; name: string }
@@ -89,7 +89,7 @@ export const PRIORITY_LABEL = ["niedrig", "normal", "hoch"];
 
 export interface AutoplanSlot { weekdays: number[]; template_id: number | null; start_time: string; end_time: string; break_minutes: number; count: number }
 export interface AutoplanPerson {
-  user_id: number; name: string; period_start: string; period_end: string; weekly_hours: number | null; is_minijob: boolean;
+  user_id: number; name: string; period_start: string; period_end: string; weekly_hours: number | null; is_minijob: boolean; is_casual: boolean;
   soll_h: number | null; urlaub_h: number; ziel_h: number | null; max_h: number | null; minijob_max_h: number | null;
   geplant_vorher_h?: number; neu_h?: number; gesamt_h: number; rest_h: number | null; verfuegbar_h?: number; moeglich_h?: number;
 }

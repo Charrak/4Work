@@ -44,7 +44,7 @@ function HoursTable({ rows, preview }: { rows: AutoplanPerson[]; preview?: boole
             const under = p.ziel_h !== null && p.gesamt_h < p.ziel_h - 0.01;
             return (
               <tr key={`${p.user_id}-${p.period_start}`}>
-                <td>{p.name} {p.is_minijob && <Badge kind="info">Minijob</Badge>}</td>
+                <td>{p.name} {p.is_minijob && <Badge kind="info">Minijob</Badge>} {p.is_casual && <Badge kind="muted">Aushilfe – kein Stundenkonto</Badge>}</td>
                 {preview && <td className="small">{fmtDate(p.period_start)}–{fmtDate(p.period_end)}</td>}
                 <td>{h(p.soll_h)}</td>
                 <td>{p.urlaub_h ? h(p.urlaub_h) : "–"}</td>
@@ -141,7 +141,7 @@ export default function Autoplan() {
         {overview.data && <HoursTable rows={overview.data.people} />}
         <p className="muted small">
           Von = Soll aus den Wochenstunden (anteilig bei Ein-/Austritt) minus Urlaub. Bis = Von plus Überstunden-Spielraum, bei Minijob höchstens Verdienstgrenze ÷ Stundensatz.
-          Personen ohne Wochenstunden werden nur nachrangig und ohne Stundenziel eingeplant.
+          Aushilfen haben kein Stundenkonto (kein Soll, keine Plus-/Minusstunden): Sie werden nachrangig nach Verfügbarkeit eingeplant, Einsätze mindestens 4 Tage im Voraus (§ 12 TzBfG), bei Minijob bis zur Verdienstgrenze. Gleiches gilt für Personen ohne Wochenstunden.
         </p>
       </Card>
 

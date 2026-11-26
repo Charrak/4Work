@@ -66,7 +66,7 @@ def shift_warnings(db, tenant_id: int, user_id: int, start: datetime, end: datet
     if week_total > max_week + 1e-9:
         out.append(f"Mehr als {max_week:g} Wochenstunden (Woche ab {week_start:%d.%m.}: {week_total:.1f} h)")
     else:
-        contract = db.scalar(select(User.weekly_hours).where(User.id == user_id))
+        contract = None if (person and person.is_casual) else db.scalar(select(User.weekly_hours).where(User.id == user_id))
         if contract and week_total > contract + 1e-9:
             out.append(f"Über den Vertragsstunden ({contract:g} h/Woche): Woche ab {week_start:%d.%m.} = {week_total:.1f} h")
     if minor:

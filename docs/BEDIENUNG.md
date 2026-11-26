@@ -62,3 +62,5 @@ Dienstplan → **Autoplaner**. 1) Abteilung wählen: oben steht der **Stundenrah
 3) **Vorschlag berechnen**: Es wird nichts gespeichert. Angezeigt werden Besetzung, nicht besetzbare Schichten mit Gründen (z. B. „nicht verfügbar“, „Urlaub“, „Stundenbudget erreicht“) und die Stunden je Person.
 4) **Übernehmen**: Die Schichten werden angelegt, aber noch nicht veröffentlicht. Im Dienstplan prüfen, anpassen und veröffentlichen. Ein zweiter Lauf legt nichts doppelt an und befüllt vorhandene offene Schichten.
 Der Starttag des Abrechnungszeitraums steht unter Verwaltung → Einstellungen.
+
+**Aushilfen:** In der Personalverwaltung „Aushilfe“ ankreuzen. Für Aushilfen gibt es **kein Stundenkonto**: kein Soll, kein Ziel, keine Urlaubsgutschrift, keine Plus-/Minusstunden und keine Vertragsstunden-Warnung. Der Autoplaner plant sie nachrangig nach Verfügbarkeit, bei Minijob nur bis zur Verdienstgrenze, und Einsätze erst mindestens 4 Tage im Voraus.

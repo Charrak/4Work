@@ -9,6 +9,8 @@ Pro Person und Zeitraum:
 Die Vergabe ist ein deterministisches Greedy-Verfahren: Schichten in zeitlicher Reihenfolge, je Schicht erhält die
 Person mit der niedrigsten Auslastung (geplant / Ziel), die alle Regeln einhält (Vertrag, Arbeitstage, Urlaub,
 Verfügbarkeit, Überschneidung, Stundenmax., Ruhezeit, Tages-/Wochenmaximum, Jugendschutz, Minijob).
+Aushilfen (Flag is_casual): kein Stundenkonto – weder Soll/Ziel noch Urlaubsgutschrift noch Vertragsstunden-Prüfung;
+nur Obergrenze (Minijob) und Ankündigungsfrist von 4 Tagen (§ 12 TzBfG). Sie werden nachrangig nach den Stammkräften eingeplant.
 Bereits vorhandene Schichten (gleiche Abteilung, gleiche Zeit) zählen als Bedarf und werden nicht doppelt angelegt;
 unbesetzte davon werden befüllt. Die Vorschau läuft in derselben Transaktion und wird zurückgerollt.
 """
@@ -19,13 +21,14 @@ from typing import Optional
 from sqlalchemy import select
 
 from ..models import Availability, LeaveRequest, Shift, ShiftTemplate, User
-from ..utils import parse_work_days, to_local
+from ..utils import parse_work_days, to_local, utcnow
 from .limits import get_limit
 from .payroll import RateTable
 from .rules import availability_conflicts, shift_warnings
 from .tasks import local_to_utc
 
 MAX_SHIFTS = 1500
+CALL_NOTICE_DAYS = 4   # § 12 Abs. 3 TzBfG: Arbeit auf Abruf (Aushilfen) mindestens 4 Tage vorher ankündigen
 
 
 def _add_month(d: date, n: int = 1) -> date:
@@ -96,6 +99,13 @@ def _budget(p: Person, ps: date, pe: date, pct: float, rt: RateTable, mj_default
     u = p.u
     lo, hi = max(ps, u.hire_date or ps), min(pe, u.contract_end or pe)
     days = max(0, (hi - lo).days + 1)
+    if u.is_casual:  # Aushilfe: kein Stundenkonto, kein Soll/Ziel/Urlaubsgutschrift – nur Obergrenze (Minijob)
+        mj = None
+        if u.is_minijob:
+            rate = rt.rate(u.id, pe)
+            if rate > 0:
+                mj = round((u.minijob_limit or mj_default) / rate, 2)
+        return {"soll": None, "credit": 0.0, "ziel": None, "cap": mj, "target": None, "minijob_h": mj}
     soll = round(u.weekly_hours * days / 7, 2) if u.weekly_hours else None
     credit = 0.0
     if soll is not None and p.work_days:
@@ -193,6 +203,8 @@ def run(db, tenant_id: int, body, dry_run: bool) -> dict:
             return "nicht im Vertragszeitraum"
         if body.respect_work_days and d.weekday() not in p.work_days:
             return "kein Arbeitstag laut Vertrag"
+        if p.u.is_casual and it["start"] < utcnow() + timedelta(days=CALL_NOTICE_DAYS):
+            return "Ankündigungsfrist 4 Tage (§ 12 TzBfG)"
         if any(x in p.leave_days for x in (d, to_local(it["end"]).date())):
             return "Urlaub/Abwesenheit"
         if availability_conflicts(p.avail, to_local(it["start"]), to_local(it["end"])):
@@ -288,7 +300,7 @@ def run(db, tenant_id: int, body, dry_run: bool) -> dict:
             pool = round(p.pool.get(ps, 0.0), 2)
             rows.append({
                 "user_id": p.u.id, "name": p.u.name, "period_start": ps.isoformat(), "period_end": pe.isoformat(),
-                "weekly_hours": p.u.weekly_hours, "is_minijob": p.u.is_minijob,
+                "weekly_hours": p.u.weekly_hours, "is_minijob": p.u.is_minijob, "is_casual": p.u.is_casual,
                 "soll_h": b["soll"], "urlaub_h": b["credit"], "ziel_h": b["ziel"], "max_h": b["cap"],
                 "minijob_max_h": b["minijob_h"],
                 "geplant_vorher_h": round(before, 2), "neu_h": round(new, 2), "gesamt_h": round(total, 2),
@@ -334,7 +346,7 @@ def hours_overview(db, tenant_id: int, department_id: Optional[int], day: date, 
         b = _budget(p, ps, pe, overtime_pct, rt, mj_default)
         tot = round(planned.get(p.u.id, 0.0), 2)
         rows.append({"user_id": p.u.id, "name": p.u.name, "weekly_hours": p.u.weekly_hours,
-                     "is_minijob": p.u.is_minijob, "soll_h": b["soll"], "urlaub_h": b["credit"],
+                     "is_minijob": p.u.is_minijob, "is_casual": p.u.is_casual, "soll_h": b["soll"], "urlaub_h": b["credit"],
                      "ziel_h": b["ziel"], "max_h": b["cap"], "minijob_max_h": b["minijob_h"],
                      "gesamt_h": tot, "rest_h": round(b["cap"] - tot, 2) if b["cap"] is not None else None})
     return {"period_start": ps.isoformat(), "period_end": pe.isoformat(), "start_day": start_day, "people": rows}

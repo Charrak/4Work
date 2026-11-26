@@ -40,3 +40,5 @@ Die interaktive Dokumentation (OpenAPI) liegt unter **`/api/docs`** (Swagger), `
   Übernommene Schichten sind **unveröffentlicht**; Protokoll `autoplan.apply`.
 - `GET /api/autoplan/hours?day=&department_id=&overtime_pct=` – Soll / Urlaub / Ziel („von“) / Max („bis“) / gesamt / Rest je Person im Abrechnungszeitraum, in dem `day` liegt.
 - Einstellung `period_start_day` (1–28, Standard 15 = vom 15. bis 14.) unter `PUT /api/admin/settings`.
+
+- Benutzer-Feld `is_casual` (Aushilfe): im Autoplaner/Stundenrahmen ohne Soll/Ziel; Ankündigungsfrist 4 Tage beim Autoplaner. Migration 0011.

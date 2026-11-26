@@ -64,6 +64,7 @@ class UserOut(ORM):
     weekly_hours: Optional[float] = None
     is_minor: bool = False
     is_minijob: bool = False
+    is_casual: bool = False
     minijob_limit: Optional[float] = None
     work_days: str
     department_ids: list[int]
@@ -86,6 +87,7 @@ class UserCreate(BaseModel):
     weekly_hours: Optional[float] = Field(default=None, gt=0, le=60)
     is_minor: bool = False
     is_minijob: bool = False
+    is_casual: bool = False
     minijob_limit: Optional[float] = Field(default=None, gt=0, le=5000)
     rate_valid_from: Optional[date] = None
     ignore_warnings: bool = False
@@ -104,6 +106,7 @@ class UserUpdate(BaseModel):
     weekly_hours: Optional[float] = Field(default=None, gt=0, le=60)
     is_minor: Optional[bool] = None
     is_minijob: Optional[bool] = None
+    is_casual: Optional[bool] = None
     minijob_limit: Optional[float] = Field(default=None, gt=0, le=5000)
     rate_valid_from: Optional[date] = None
     ignore_warnings: bool = False

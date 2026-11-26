@@ -158,3 +158,30 @@ def test_period_start_day_setting(world):
     assert admin.put("/api/admin/settings", json={"values": {"period_start_day": "1"}}).status_code == 200
     h = admin.get("/api/autoplan/hours?day=2030-03-20").json()
     assert (h["period_start"], h["period_end"]) == ("2030-03-01", "2030-03-31")
+
+
+def test_casual_has_no_hour_account_and_notice_period(world):
+    admin, ids = world["admin"], world["ids"]
+    # Anna Stammkraft 20 h, Ben Aushilfe (trotz hinterlegter Wochenstunden kein Soll/Ziel)
+    assert admin.patch(f"/api/users/{ids['anna']}", json={"version": 1, "weekly_hours": 20}).status_code == 200
+    r = admin.patch(f"/api/users/{ids['ben']}", json={"version": 1, "weekly_hours": 20, "is_casual": True})
+    assert r.status_code == 200 and r.json()["is_casual"] is True
+    mon = next_monday()
+    h = admin.get(f"/api/autoplan/hours?day={mon}&department_id={world['dept']}").json()
+    ben = {p["user_id"]: p for p in h["people"]}[ids["ben"]]
+    anna = {p["user_id"]: p for p in h["people"]}[ids["anna"]]
+    assert ben["is_casual"] and ben["soll_h"] is None and ben["ziel_h"] is None and ben["urlaub_h"] == 0.0
+    assert anna["soll_h"] is not None
+    # Stammkraft zuerst; Aushilfe füllt nur auf, wenn die Stammkraft nicht kann (Wochenvertrag 20 h = 5 Schichten à 4 h)
+    res = plan(admin, world, mon, days=(0, 1, 2, 3, 4, 5, 6), count=1)
+    by = {}
+    for c in res["created"]:
+        by[c["user_id"]] = by.get(c["user_id"], 0) + 1
+    assert by[ids["anna"]] == 5 and by[ids["ben"]] == 2        # Aushilfe: keine Vertragsstunden-Grenze, kein Soll
+    # Ankündigungsfrist 4 Tage (§ 12 TzBfG): kurzfristig keine Aushilfe
+    soon = date.today() + timedelta(days=2)
+    r = admin.post("/api/autoplan", json={"department_id": world["dept"], "start": str(soon), "end": str(soon),
+                                          "slots": [{"weekdays": [soon.weekday()], "start_time": "20:00", "end_time": "22:00", "count": 2}]})
+    assert r.status_code == 200
+    reasons = {k for u in r.json()["unfilled"] for k in u["reasons"]}
+    assert any("Ankündigungsfrist" in k for k in reasons)

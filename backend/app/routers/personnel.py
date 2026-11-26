@@ -83,7 +83,7 @@ def get_file(user_id: int, request: Request, user: User = Depends(require("users
         },
         "contract": {
             "weekly_hours": t.weekly_hours, "work_days": t.work_days, "vacation_days": t.vacation_days,
-            "hourly_rate": t.hourly_rate, "is_minor": bool(t.is_minor), "is_minijob": bool(t.is_minijob),
+            "hourly_rate": t.hourly_rate, "is_minor": bool(t.is_minor), "is_minijob": bool(t.is_minijob), "is_casual": bool(t.is_casual),
             "minijob_limit": t.minijob_limit,
         },
         "wages": [{"id": w.id, "hourly_rate": w.hourly_rate, "valid_from": w.valid_from.isoformat()} for w in wages],

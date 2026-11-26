@@ -76,6 +76,7 @@ def list_users(user: User = Depends(require("users.view")), db: Session = Depend
         o.weekly_hours = None
         o.is_minor = False
         o.is_minijob = False
+        o.is_casual = False
         o.minijob_limit = None
         out.append(o)
     return out
@@ -91,7 +92,7 @@ def create_user(body: UserCreate, request: Request, user: User = Depends(require
     new = User(tenant_id=user.tenant_id, email=body.email, name=body.name,
                password_hash=hash_password(body.password), role=body.role,
                hourly_rate=body.hourly_rate, vacation_days=body.vacation_days, work_days=body.work_days,
-               weekly_hours=body.weekly_hours, is_minor=body.is_minor, is_minijob=body.is_minijob,
+               weekly_hours=body.weekly_hours, is_minor=body.is_minor, is_minijob=body.is_minijob, is_casual=body.is_casual,
                minijob_limit=body.minijob_limit if body.is_minijob else None)
     new.departments = _departments(db, user.tenant_id, body.department_ids)
     db.add(new)
@@ -141,7 +142,7 @@ def update_user(user_id: int, body: UserUpdate, request: Request,
                                valid_from=valid_from, created_by=user.id))
         audit(db, user, "user.wage_change", f"user={target.id} ab={valid_from} satz={data['hourly_rate']}", request)
     for key, value in data.items():
-        if key in ("email", "name", "role", "is_active", "vacation_days", "work_days", "is_minor", "is_minijob") and value is None:
+        if key in ("email", "name", "role", "is_active", "vacation_days", "work_days", "is_minor", "is_minijob", "is_casual") and value is None:
             continue
         if key == "hourly_rate" and value and rate_from and rate_from > date.today():
             continue  # Satz gilt erst ab Zukunftsdatum; der Verlauf enthält ihn bereits

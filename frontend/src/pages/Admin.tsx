@@ -110,6 +110,7 @@ function UserModal({ user, depts, defaultDays, onClose, onSaved }: { user: User 
   const [weekly, setWeekly] = useState(user?.weekly_hours?.toString() ?? "");
   const [minor, setMinor] = useState(user?.is_minor ?? false);
   const [minijob, setMinijob] = useState(user?.is_minijob ?? false);
+  const [casual, setCasual] = useState(user?.is_casual ?? false);
   const [mjLimit, setMjLimit] = useState(user?.minijob_limit?.toString() ?? "");
   const [rateFrom, setRateFrom] = useState("");
   const [wages, setWages] = useState<Wage[] | null>(null);
@@ -122,7 +123,7 @@ function UserModal({ user, depts, defaultDays, onClose, onSaved }: { user: User 
     setError(null);
     const common = { name, email, role, department_ids: ids, hourly_rate: rate === "" ? null : Number(rate.replace(",", ".")), vacation_days: Number(days), work_days: workDays,
       weekly_hours: weekly === "" ? null : Number(weekly.replace(",", ".")),
-      is_minor: minor, is_minijob: minijob, minijob_limit: minijob && mjLimit.trim() !== "" ? Number(mjLimit.replace(",", ".")) : null, ...(rateFrom ? { rate_valid_from: rateFrom } : {}) };
+      is_minor: minor, is_minijob: minijob, is_casual: casual, minijob_limit: minijob && mjLimit.trim() !== "" ? Number(mjLimit.replace(",", ".")) : null, ...(rateFrom ? { rate_valid_from: rateFrom } : {}) };
     const send = (extra: object) => user ? patch(`/users/${user.id}`, { ...common, ...extra, version: user.version }) : post("/users", { ...common, ...extra, password });
     try {
       try { await send({}); }
@@ -166,6 +167,7 @@ function UserModal({ user, depts, defaultDays, onClose, onSaved }: { user: User 
           </div>
         )}
         <label className="inline-check"><input type="checkbox" checked={minijob} onChange={(e) => setMinijob(e.target.checked)} /><span>Minijob (Verdienstgrenze wird überwacht)</span></label>
+        <label className="inline-check"><input type="checkbox" checked={casual} onChange={(e) => setCasual(e.target.checked)} /><span>Aushilfe (kein Stundenkonto: kein Soll, keine Plus-/Minusstunden; Einsatz nach Verfügbarkeit, Ankündigung mind. 4 Tage vorher)</span></label>
         {minijob && (
           <Field label="Maximaler Verdienst pro Monat (€)" hint="Leer = Firmenvorgabe aus den Einstellungen. Gilt für Bericht und Planungshinweis (ohne Zuschläge bei der Planung).">
             <input inputMode="decimal" value={mjLimit} placeholder="Firmenvorgabe" onChange={(e) => setMjLimit(e.target.value)} />
