@@ -11,8 +11,10 @@ function AuthFrame({ title, children }: { title: string; children: ReactNode }) 
       <div className="card">
         <img className="logo" src="/logo.png" alt="physio & fit VitalZentrum Eschweiler" />
         <h1 className="center">{title}</h1>
+        <p className="auth-sub">Dienstplan · Zeiterfassung · Urlaub</p>
         {children}
       </div>
+      <p className="auth-foot">physio &amp; fit VitalZentrum Eschweiler</p>
     </div>
   );
 }

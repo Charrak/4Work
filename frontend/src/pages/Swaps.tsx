@@ -19,9 +19,12 @@ export default function Swaps() {
   };
   const openShifts = (open.data ?? []).filter((s) => s.user_id === null && s.published);
   const list = swaps.data ?? [];
-  const forMe = list.filter((s) => s.status === "open" && s.from_user_id !== me!.id);
+  // Nur Anfragen, die ich auch annehmen darf (an alle oder gezielt an mich)
+  const forMe = list.filter((s) => s.status === "open" && s.from_user_id !== me!.id && (s.to_user_id === null || s.to_user_id === me!.id));
   const mine = list.filter((s) => s.from_user_id === me!.id);
   const approvals = list.filter((s) => s.status === "accepted");
+  const activeSwapShifts = new Set(list.filter((s) => s.status === "open" || s.status === "accepted").map((s) => s.shift_id));
+  const myShifts = (open.data ?? []).filter((s) => s.user_id === me!.id && s.published && new Date(s.start) > now && !activeSwapShifts.has(s.id));
   const when = (s: Swap) => `${fmtDay(new Date(s.shift_start))}, ${fmtTime(s.shift_start)}–${fmtTime(s.shift_end)}`;
 
   return (
@@ -46,11 +49,22 @@ export default function Swaps() {
         {forMe.length === 0 && <Empty>Aktuell sucht niemand Ersatz.</Empty>}
         {forMe.map((s) => (
           <div className="list-item" key={s.id}>
-            <span><b>{when(s)}</b><br />{s.from_user_name}</span>
+            <span><b>{when(s)}</b><br />{s.from_user_name}{s.to_user_id === me!.id && <> <span className="badge info">an dich</span></>}</span>
             {can("swap.request") && <Btn kind="primary" onClick={() => act(() => post(`/swaps/${s.id}/accept`), "Angenommen – wartet auf Freigabe")}>Übernehmen</Btn>}
           </div>
         ))}
       </Card>
+      {can("swap.request") && (
+        <Card title="Eigene Schicht zum Tausch anbieten">
+          {myShifts.length === 0 && <Empty>Sie haben in den nächsten 60 Tagen keine veröffentlichten Schichten, die getauscht werden können.</Empty>}
+          {myShifts.map((s) => (
+            <div className="list-item" key={s.id}>
+              <span><b>{fmtDay(new Date(s.start))}, {fmtTime(s.start)}–{fmtTime(s.end)}</b>{s.note && <><br /><span className="muted">{s.note}</span></>}</span>
+              <Btn onClick={() => act(() => post("/swaps", { shift_id: s.id }), "Tauschanfrage an alle Kollegen gesendet")}>Tausch anfragen</Btn>
+            </div>
+          ))}
+        </Card>
+      )}
       <Card title="Meine Tauschanfragen">
         {mine.length === 0 && <Empty>Sie haben keine Tauschanfragen. Tippen Sie im Dienstplan auf Ihre Schicht, um einen Tausch anzufragen.</Empty>}
         {mine.map((s) => (

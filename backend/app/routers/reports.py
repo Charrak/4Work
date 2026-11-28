@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Optional
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -25,6 +26,19 @@ def legal_break_minutes(duration_min: float, minor: bool = False) -> int:
     if minor:
         return 60 if duration_min > 360 else 30 if duration_min > 270 else 0
     return 45 if duration_min > 540 else 30 if duration_min > 360 else 0
+
+
+def effective_break(e, planned_break: Optional[int], gross_min: float, minor: bool = False) -> int:
+    """Pause, die von der Anwesenheit abgezogen wird.
+    1. Pause gestempelt → gestempelte Pause, mindestens aber die gesetzliche Mindestpause.
+    2. sonst Pause der zugeordneten Schicht (0 = gesetzliche Mindestpause).
+    3. sonst gesetzliche Mindestpause."""
+    legal = legal_break_minutes(gross_min, minor)
+    if getattr(e, "break_taken_min", None) is not None:
+        return max(int(e.break_taken_min), legal)
+    if planned_break:
+        return int(planned_break)
+    return legal
 
 
 def compute_summary(db: Session, tenant_id: int, start, end) -> dict:
@@ -59,14 +73,13 @@ def compute_summary(db: Session, tenant_id: int, start, end) -> dict:
             if s.end <= now:
                 rows[s.user_id]["planned_elapsed_hours"] += net
     for e in db.scalars(select(TimeEntry).where(TimeEntry.tenant_id == tenant_id,
-                                                TimeEntry.clock_out.is_not(None),
+                                                TimeEntry.clock_out.is_not(None), TimeEntry.deleted_at.is_(None),
                                                 TimeEntry.clock_in >= start, TimeEntry.clock_in < end)).all():
         r = rows.get(e.user_id)
         if r is None:
             continue
         gross_min = (e.clock_out - e.clock_in).total_seconds() / 60
-        brk = shift_break[e.shift_id] if (e.shift_id and e.shift_id in shift_break) else \
-            legal_break_minutes(gross_min, r["is_minor"])
+        brk = effective_break(e, shift_break.get(e.shift_id) if e.shift_id else None, gross_min, r["is_minor"])
         h = max(0.0, gross_min - brk) / 60
         r["worked_hours"] += h
         if e.approved:
@@ -97,6 +110,7 @@ def compute_summary(db: Session, tenant_id: int, start, end) -> dict:
     win_start = win_end - timedelta(weeks=26)
     totals26: dict[int, float] = defaultdict(float)
     for e in db.scalars(select(TimeEntry).where(TimeEntry.tenant_id == tenant_id, TimeEntry.clock_out.is_not(None),
+                                                TimeEntry.deleted_at.is_(None),
                                                 TimeEntry.clock_in >= win_start, TimeEntry.clock_in < win_end)).all():
         u = by_id.get(e.user_id)
         if not u:

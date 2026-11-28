@@ -49,7 +49,10 @@ def test_clock_in_out_and_location_consent(world):
         entry = db.get(TimeEntry, e.json()["id"])
         assert entry.lat is None and entry.lon is None          # ohne Zustimmung nichts gespeichert
     assert anna.patch(f"/api/time/entries/{out['id']}", json={"approved": True}).status_code == 403
-    assert planer.patch(f"/api/time/entries/{out['id']}", json={"approved": True}).json()["approved"] is True
+    # ohne Schicht gestempelt = Abweichung → Freigabe nur mit Kontrollvermerk
+    assert planer.patch(f"/api/time/entries/{out['id']}", json={"approved": True}).status_code == 422
+    ok = planer.patch(f"/api/time/entries/{out['id']}", json={"approved": True, "note": "Vertretung, abgesprochen"})
+    assert ok.json()["approved"] is True
 
 
 def test_reports_and_payroll_csv(world):
@@ -69,3 +72,44 @@ def test_chat(world):
     assert anna.post("/api/messages", json={"text": "Hallo Team"}).status_code == 201
     msgs = ben.get("/api/messages").json()
     assert msgs[-1]["text"] == "Hallo Team" and msgs[-1]["user_name"] == "Anna"
+
+
+def test_time_entry_correction_keeps_original_and_soft_delete(world):
+    anna, planer = world["new_client"]("anna@test.de"), world["new_client"]("planer@test.de")
+    e = anna.post("/api/time/clock-in", json={}).json()
+    anna.post("/api/time/clock-out")
+    r = planer.patch(f"/api/time/entries/{e['id']}",
+                     json={"clock_in": "2030-01-07T08:00:00Z", "clock_out": "2030-01-07T16:00:00Z"}).json()
+    assert r["clock_in"].startswith("2030-01-07T08:00") and r["orig_clock_in"] == e["clock_in"]
+    assert r["orig_clock_out"] is not None and r["edited_by"]
+    # zweite Korrektur überschreibt die Originalzeiten nicht
+    r2 = planer.patch(f"/api/time/entries/{e['id']}", json={"clock_out": "2030-01-07T15:00:00Z"}).json()
+    assert r2["orig_clock_in"] == e["clock_in"]
+    # Löschen: nur mit Recht und Begründung, danach nicht mehr sichtbar
+    assert anna.delete(f"/api/time/entries/{e['id']}?reason=Fehlstempelung").status_code == 403
+    assert planer.delete(f"/api/time/entries/{e['id']}?reason=x").status_code == 422
+    assert planer.delete(f"/api/time/entries/{e['id']}?reason=Fehlstempelung").status_code == 204
+    left = planer.get("/api/time/entries?start=2030-01-01T00:00:00Z&end=2030-02-01T00:00:00Z&all=true").json()
+    assert all(x["id"] != e["id"] for x in left)
+
+
+def test_break_stamping(world):
+    anna = world["new_client"]("anna@test.de")
+    assert anna.post("/api/time/break-start").status_code == 409          # nicht eingestempelt
+    anna.post("/api/time/clock-in", json={})
+    assert anna.post("/api/time/break-end").status_code == 409            # keine Pause
+    assert anna.post("/api/time/break-start").status_code == 200
+    assert anna.post("/api/time/break-start").status_code == 409          # läuft schon
+    assert anna.get("/api/time/status").json()["on_break"] is True
+    out = anna.post("/api/time/clock-out").json()                         # beendet die Pause automatisch
+    assert out["break_start"] is None and out["break_taken_min"] == 0
+
+
+def test_effective_break_rules():
+    from types import SimpleNamespace as N
+    from app.routers.reports import effective_break
+    assert effective_break(N(break_taken_min=10), 30, 8 * 60) == 30       # gestempelt < gesetzlich → gesetzlich
+    assert effective_break(N(break_taken_min=50), 30, 8 * 60) == 50       # gestempelt länger → gestempelt
+    assert effective_break(N(break_taken_min=None), 45, 8 * 60) == 45     # Schichtpause
+    assert effective_break(N(break_taken_min=None), 0, 8 * 60) == 30      # 0 = gesetzlich
+    assert effective_break(N(break_taken_min=None), None, 5 * 60) == 0    # ≤ 6 h keine Pause

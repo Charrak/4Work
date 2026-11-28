@@ -9,7 +9,7 @@ from ..schemas import SwapCreate, SwapDecision, SwapOut
 from ..services.audit import audit
 from ..services.common import (changed, check_assignable, get_user_or_404, notify_users,
                                permissions_for)
-from ..utils import utcnow
+from ..utils import to_local, utcnow
 
 router = APIRouter(prefix="/api/swaps", tags=["swaps"])
 
@@ -62,7 +62,7 @@ def create_swap(body: SwapCreate, request: Request, user: User = Depends(require
             User.tenant_id == user.tenant_id, User.is_active.is_(True), User.deleted_at.is_(None),
             User.id != user.id)).all() if shift.department_id in u.department_ids]
     notify_users(db, user.tenant_id, recipients, "Schichttausch angefragt",
-                 f"{user.name} sucht Ersatz für {shift.start:%d.%m.%Y %H:%M}.", "swaps.changed")
+                 f"{user.name} sucht Ersatz für {to_local(shift.start):%d.%m.%Y %H:%M} Uhr.", "swaps.changed")
     return _out(db, sw)
 
 
@@ -134,7 +134,7 @@ def decide_swap(swap_id: int, body: SwapDecision, request: Request,
     changed(user.tenant_id, "swaps")
     txt = "genehmigt" if body.approve else "abgelehnt"
     notify_users(db, user.tenant_id, [sw.from_user_id, sw.to_user_id], f"Tausch {txt}",
-                 f"Der Schichttausch am {shift.start:%d.%m.%Y} wurde {txt}.")
+                 f"Der Schichttausch am {to_local(shift.start):%d.%m.%Y} wurde {txt}.")
     return _out(db, sw)
 
 

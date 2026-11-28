@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => { setMe(await post<Me>("/auth/login", { email, password })); };
   const logout = async () => {
     try { await post("/auth/logout"); } catch { /* egal */ }
-    try { navigator.serviceWorker?.controller?.postMessage("clear-api-cache"); await caches.delete("api-v2"); } catch { /* egal */ }
+    try { navigator.serviceWorker?.controller?.postMessage("clear-api-cache"); const keys = await caches.keys(); await Promise.all(keys.filter((k) => k.startsWith("api-")).map((k) => caches.delete(k))); } catch { /* egal */ }
     const dropped = clearQueue();
     if (dropped) toast(`${dropped} nicht gesendete Aktion(en) wurden beim Abmelden verworfen.`, "error");
     setMe(null);

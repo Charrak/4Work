@@ -33,7 +33,12 @@ export default function Leave() {
     } catch (e) { setError((e as Error).message); }
   };
   const decide = async (id: number, approve: boolean) => {
-    const comment = approve ? "" : (window.prompt("Begründung (optional)") ?? "");
+    let comment = "";
+    if (!approve) {
+      const c = window.prompt("Antrag ablehnen – Begründung (optional):");
+      if (c === null) return; // Abbrechen gedrückt → nichts tun
+      comment = c;
+    }
     try { await post(`/leave/${id}/decide`, { approve, comment }); toast(approve ? "Genehmigt" : "Abgelehnt"); reloadAll(); }
     catch (e) { toast((e as Error).message, "error"); }
   };
@@ -101,7 +106,7 @@ export default function Leave() {
             <span><b>{fmtDate(l.start_date)} – {fmtDate(l.end_date)}</b> ({l.days} Tage) <span className="badge">{KIND_LABEL[l.kind] ?? l.kind}</span>
               {l.decision_comment && <><br /><span className="muted">{l.decision_comment}</span></>}</span>
             <span className="row"><StatusBadge status={l.status} />
-              {(l.status === "pending" || l.status === "approved") && new Date(l.start_date) > new Date() && <Btn onClick={() => cancel(l.id)}>Stornieren</Btn>}
+              {(l.status === "pending" || l.status === "approved") && l.start_date > today && <Btn onClick={() => cancel(l.id)}>Stornieren</Btn>}
             </span>
           </div>
         ))}

@@ -111,7 +111,7 @@ def system_info(user: User = Depends(require("admin.audit")), db: Session = Depe
             "swaps_waiting_approval": count(select(func.count(SwapRequest.id)).where(
                 SwapRequest.tenant_id == t, SwapRequest.status == "accepted")),
             "clocked_in_now": count(select(func.count(TimeEntry.id)).where(
-                TimeEntry.tenant_id == t, TimeEntry.clock_out.is_(None))),
+                TimeEntry.tenant_id == t, TimeEntry.clock_out.is_(None), TimeEntry.deleted_at.is_(None))),
         },
     }
 

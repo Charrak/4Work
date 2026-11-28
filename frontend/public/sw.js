@@ -1,5 +1,5 @@
 /* Service Worker: App-Shell offline, API-Lesezugriffe mit Netzwerk-zuerst + Cache-Fallback, Web-Push. */
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL = "shell-" + VERSION;
 const API = "api-" + VERSION;
 const SHELL_FILES = ["/", "/index.html", "/manifest.webmanifest", "/logo.png", "/icons/icon-192.png"];

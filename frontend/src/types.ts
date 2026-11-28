@@ -24,6 +24,10 @@ export interface LeaveBalance { user_id: number; year: number; entitlement: numb
 export interface TimeEntry {
   id: number; user_id: number; user_name: string; shift_id: number | null; clock_in: string;
   clock_out: string | null; minutes: number | null; approved: boolean; note: string;
+  /** Ursprünglich gestempelte Zeiten, falls der Eintrag korrigiert wurde */
+  /** Pause per Stempeluhr: laufende Pause seit break_start, Summe beendeter Pausen (Minuten) */
+  break_start?: string | null; break_taken_min?: number | null;
+  orig_clock_in?: string | null; orig_clock_out?: string | null; edited_at?: string | null; edited_by?: string | null;
 }
 export interface Message { id: number; user_id: number; user_name: string; text: string; created_at: string }
 export interface ReportRow {

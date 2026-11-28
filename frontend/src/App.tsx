@@ -48,7 +48,7 @@ function Protected() {
 }
 
 function Layout() {
-  const { me, can } = useAuth();
+  const { me, can, logout } = useAuth();
   const [theme, nextTheme] = useTheme();
   const manage = can("users.manage") || can("settings.manage") || can("admin.audit") || can("admin.backup") || can("roles.manage");
   const items: { to: string; label: string; icon: string; show: boolean; mobile: boolean }[] = [
@@ -64,24 +64,41 @@ function Layout() {
     { to: "/verwaltung", label: "Verwaltung", icon: "⚙️", show: manage, mobile: false },
   ];
   const visible = items.filter((i) => i.show);
+  const initials = me!.name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
+  const themeLabel = theme === "auto" ? "automatisch" : theme === "light" ? "hell" : "dunkel";
+  const themeIcon = theme === "auto" ? "🌓" : theme === "light" ? "☀️" : "🌙";
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand"><img src="/logo.png" alt="physio & fit VitalZentrum Eschweiler" /></div>
+        <div className="brand">
+          <img src="/logo.png" alt="physio & fit VitalZentrum Eschweiler" />
+          <div className="brand-sub">Dienstplan</div>
+        </div>
         <nav>
           {visible.map((i) => (
             <NavLink key={i.to} to={i.to} end={i.to === "/"} className={({ isActive }) => (isActive ? "active" : "")}>
               <span aria-hidden>{i.icon}</span> {i.label}
             </NavLink>
           ))}
+          <div className="nav-sep" role="separator" />
           <NavLink to="/profil" className={({ isActive }) => (isActive ? "active" : "")}><span aria-hidden>👤</span> Profil</NavLink>
           <NavLink to="/datenschutz" className={({ isActive }) => (isActive ? "active" : "")}><span aria-hidden>🔒</span> Datenschutz</NavLink>
         </nav>
         <div className="side-foot">
-          <div className="muted small">{me!.name}</div>
-          <button className="link" onClick={nextTheme}>Darstellung: {theme === "auto" ? "automatisch" : theme === "light" ? "hell" : "dunkel"}</button>
+          <div className="user-chip">
+            <span className="avatar" aria-hidden>{initials}</span>
+            <div className="who"><b>{me!.name}</b><small>Angemeldet</small></div>
+          </div>
+          <button className="theme-btn" onClick={nextTheme}><span aria-hidden>{themeIcon}</span> Darstellung: {themeLabel}</button>
+          <button className="theme-btn" onClick={() => { if (window.confirm("Wirklich abmelden?")) logout(); }}><span aria-hidden>🚪</span> Abmelden</button>
         </div>
       </aside>
+      <header className="mobilebar">
+        <img src="/icons/icon-192.png" alt="" />
+        <b className="grow">Dienstplan</b>
+        <button className="icon" onClick={nextTheme} aria-label={`Darstellung: ${themeLabel}`} style={{ color: "#fff" }}>{themeIcon}</button>
+        <NavLink to="/profil" className="avatar" aria-label="Profil">{initials}</NavLink>
+      </header>
       <main className="content"><Outlet /></main>
       <nav className="tabbar" aria-label="Hauptnavigation">
         {visible.filter((i) => i.mobile).map((i) => (

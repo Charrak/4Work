@@ -12,18 +12,21 @@ export default function Chat() {
   const toast = useToast();
   const msgs = useLoad(() => get<Message[]>("/messages?limit=100"), []);
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useLive(["chat.message"], msgs.reload);
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }); }, [msgs.data?.length]);
 
   const send = async () => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || sending) return;
+    setSending(true);
     try {
       const r = await mutateOrQueue("Chat-Nachricht", "/messages", "POST", { text: t });
       if (r.queued) toast("Offline: Nachricht wird später gesendet", "info");
       setText(""); msgs.reload();
     } catch (e) { toast((e as Error).message, "error"); }
+    finally { setSending(false); }
   };
 
   return (
@@ -42,7 +45,7 @@ export default function Chat() {
         </div>
         <div className="row" style={{ marginTop: ".75rem" }}>
           <input className="grow" value={text} maxLength={2000} placeholder="Nachricht schreiben…" aria-label="Nachricht"
-            onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} />
+            onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
           <Btn kind="primary" onClick={send}>Senden</Btn>
         </div>
       </Card>

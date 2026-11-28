@@ -22,11 +22,29 @@ setup_logging()
 log = logging.getLogger("dienstplan")
 
 
+def _add_missing_columns() -> None:
+    """Nur Entwicklung (ohne Alembic): neue, optionale Spalten an bestehende Tabellen anfügen,
+    damit eine vorhandene dienstplan.db nach Updates weiter funktioniert."""
+    import sqlalchemy as sa
+    insp = sa.inspect(engine)
+    for table in Base.metadata.sorted_tables:
+        if not insp.has_table(table.name):
+            continue
+        have = {c["name"] for c in insp.get_columns(table.name)}
+        for col in table.columns:
+            if col.name not in have and col.nullable:
+                ddl = f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {col.type.compile(engine.dialect)}'
+                with engine.begin() as con:
+                    con.execute(sa.text(ddl))
+                log.info("Spalte ergänzt: %s.%s", table.name, col.name)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     hub.loop = asyncio.get_running_loop()
     if settings.auto_create_tables:
         Base.metadata.create_all(engine)
+        _add_missing_columns()
     log.info("Dienstplan %s gestartet (%s)", settings.version, settings.env)
     yield
 

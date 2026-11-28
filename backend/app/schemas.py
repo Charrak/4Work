@@ -280,6 +280,7 @@ class TimeEntryUpdate(BaseModel):
     clock_out: Optional[UTCDateTime] = None
     note: Optional[str] = Field(default=None, max_length=500)
     approved: Optional[bool] = None
+    break_minutes: Optional[int] = Field(default=None, ge=0, le=600)
 
 
 class TimeEntryOut(BaseModel):
@@ -292,6 +293,12 @@ class TimeEntryOut(BaseModel):
     minutes: Optional[int]
     approved: bool
     note: str
+    break_start: Optional[UTCDateTime] = None
+    break_taken_min: Optional[int] = None
+    orig_clock_in: Optional[UTCDateTime] = None
+    orig_clock_out: Optional[UTCDateTime] = None
+    edited_at: Optional[UTCDateTime] = None
+    edited_by: Optional[str] = None
 
 
 # ---------- Sonstiges ----------

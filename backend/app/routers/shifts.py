@@ -14,7 +14,7 @@ from ..services.audit import audit
 from ..services.rules import shift_warnings
 from ..services.common import (changed, check_assignable, check_version, get_department_or_404,
                                get_user_or_404, has_leave, has_overlap, notify_users, permissions_for)
-from ..utils import UTCDateTime, utcnow
+from ..utils import UTCDateTime, local_tz, to_local, utcnow
 
 router = APIRouter(prefix="/api/shifts", tags=["shifts"])
 
@@ -130,12 +130,12 @@ def update_shift(shift_id: int, body: ShiftUpdate, request: Request,
     if s.published:
         if new_user != old_user:
             notify_users(db, user.tenant_id, [old_user], "Schicht entfernt",
-                         f"Deine Schicht am {s.start:%d.%m.%Y} wurde einer anderen Person zugeteilt.")
+                         f"Deine Schicht am {to_local(s.start):%d.%m.%Y} wurde einer anderen Person zugeteilt.")
             notify_users(db, user.tenant_id, [new_user], "Neue Schicht",
-                         f"Du wurdest für {s.start:%d.%m.%Y %H:%M} eingeteilt.")
+                         f"Du wurdest für {to_local(s.start):%d.%m.%Y %H:%M} Uhr eingeteilt.")
         elif time_changed and new_user:
             notify_users(db, user.tenant_id, [new_user], "Schicht geändert",
-                         f"Deine Schicht am {s.start:%d.%m.%Y} hat neue Zeiten.")
+                         f"Deine Schicht am {to_local(s.start):%d.%m.%Y} hat neue Zeiten.")
     return _outs(db, user.tenant_id, [s], True)[0]
 
 
@@ -155,7 +155,7 @@ def delete_shift(shift_id: int, request: Request, user: User = Depends(require("
     changed(user.tenant_id)
     if s.published and s.user_id:
         notify_users(db, user.tenant_id, [s.user_id], "Schicht gestrichen",
-                     f"Deine Schicht am {s.start:%d.%m.%Y} entfällt.")
+                     f"Deine Schicht am {to_local(s.start):%d.%m.%Y} entfällt.")
 
 
 @router.post("/publish")
@@ -179,11 +179,20 @@ def publish(body: PublishIn, request: Request, user: User = Depends(require("shi
 @router.post("/copy-week")
 def copy_week(body: CopyWeekIn, request: Request, user: User = Depends(require("shifts.manage")),
               db: Session = Depends(get_db)):
-    from datetime import datetime as dt
-    src_start = dt.combine(body.source_start, dt.min.time())
-    src_end = src_start + timedelta(days=7)
-    delta = dt.combine(body.target_start, dt.min.time()) - src_start
-    if delta == timedelta(0):
+    from datetime import datetime as dt, timezone as tz
+    tzl = local_tz()
+
+    def local_midnight_utc(d):
+        return dt.combine(d, dt.min.time(), tzinfo=tzl).astimezone(tz.utc).replace(tzinfo=None)
+
+    def shift_days(v, n):  # gleiche Ortszeit n Tage später (auch über die Zeitumstellung)
+        return (to_local(v) + timedelta(days=n)).replace(tzinfo=None).replace(tzinfo=tzl) \
+            .astimezone(tz.utc).replace(tzinfo=None)
+
+    src_start = local_midnight_utc(body.source_start)
+    src_end = local_midnight_utc(body.source_start + timedelta(days=7))
+    days = (body.target_start - body.source_start).days
+    if days == 0:
         raise HTTPException(422, "Quell- und Zielwoche sind identisch")
     q = select(Shift).where(Shift.tenant_id == user.tenant_id, Shift.deleted_at.is_(None),
                             Shift.start >= src_start, Shift.start < src_end)
@@ -191,7 +200,7 @@ def copy_week(body: CopyWeekIn, request: Request, user: User = Depends(require("
         q = q.where(Shift.department_id == body.department_id)
     created, open_due_to_conflict = 0, 0
     for s in db.scalars(q).all():
-        new_start, new_end = s.start + delta, s.end + delta
+        new_start, new_end = shift_days(s.start, days), shift_days(s.end, days)
         uid = s.user_id if body.include_assignments else None
         if uid:
             u = db.get(User, uid)
@@ -273,5 +282,5 @@ def decide_claim(claim_id: int, body: ClaimDecision, request: Request,
     changed(user.tenant_id)
     notify_users(db, user.tenant_id, [c.user_id],
                  "Schicht zugeteilt" if body.approve else "Schicht abgelehnt",
-                 f"Deine Anfrage für {s.start:%d.%m.%Y %H:%M} wurde {'angenommen' if body.approve else 'abgelehnt'}.")
+                 f"Deine Anfrage für {to_local(s.start):%d.%m.%Y %H:%M} Uhr wurde {'angenommen' if body.approve else 'abgelehnt'}.")
     return {"status": c.status}

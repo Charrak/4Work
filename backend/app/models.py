@@ -137,6 +137,17 @@ class TimeEntry(Base):
     note: Mapped[str] = mapped_column(String(500), default="")
     lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # Nachvollziehbarkeit bei Korrekturen: ursprünglich gestempelte Zeiten bleiben erhalten
+    # Pause per Stempeluhr: laufende Pause seit break_start, Summe aller beendeten Pausen in Minuten
+    break_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    break_taken_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    orig_clock_in: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    orig_clock_out: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    edited_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    edited_by: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    # Löschen = nur ausblenden (Arbeitszeitnachweise müssen aufbewahrt werden)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    delete_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
