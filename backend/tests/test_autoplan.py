@@ -82,22 +82,27 @@ def test_availability_and_leave_are_respected(world):
     assert by_day[str(mon)] == ids["anna"] and by_day[str(tue)] == ids["ben"]
 
 
+def staff(world):
+    """Nur Anna und Ben einplanen (Admin und Planer gehören im Test ebenfalls zur Abteilung)."""
+    return [world["ids"]["anna"], world["ids"]["ben"]]
+
+
 def test_unfilled_reasons_and_open_shifts(world):
     admin = world["admin"]
     setup_hours(world)
     mon = next_monday()
     ben = world["new_client"]("ben@test.de")
     ben.put("/api/availability", json={"items": [{"weekday": 0, "start_time": "00:00", "end_time": "23:59"}]})
-    pre = plan(admin, world, mon, days=(0,), count=2)
+    pre = plan(admin, world, mon, days=(0,), count=2, user_ids=staff(world))
     assert pre["counts"]["created"] == 1 and pre["counts"]["unfilled"] == 1
     assert pre["unfilled"][0]["reasons"].get("nicht verfügbar") == 1
-    done = plan(admin, world, mon, apply=True, days=(0,), count=2, create_open=True)
+    done = plan(admin, world, mon, apply=True, days=(0,), count=2, create_open=True, user_ids=staff(world))
     rows = shifts_of(admin, mon)
     assert len(rows) == 2 and sorted(r["user_id"] is None for r in rows) == [False, True]
     assert done["counts"]["open_created"] == 1
     # offene Schicht wird bei späterem Lauf befüllt, sobald jemand verfügbar ist (kein Duplikat)
     ben.put("/api/availability", json={"items": []})
-    later = plan(admin, world, mon, apply=True, days=(0,), count=2)
+    later = plan(admin, world, mon, apply=True, days=(0,), count=2, user_ids=staff(world))
     assert later["counts"]["filled_existing"] == 1 and len(shifts_of(admin, mon)) == 2
     assert all(r["user_id"] for r in shifts_of(admin, mon))
 
@@ -106,7 +111,7 @@ def test_weekly_contract_limits_distribution(world):
     admin = world["admin"]
     setup_hours(world, anna=4, ben=4)                       # je 4 h/Woche = eine 4-h-Schicht
     mon = next_monday()
-    res = plan(admin, world, mon, days=(0, 1, 2))
+    res = plan(admin, world, mon, days=(0, 1, 2), user_ids=staff(world))
     assert res["counts"]["created"] == 2 and res["counts"]["unfilled"] == 1
     assert "Wochenstunden laut Vertrag" in res["unfilled"][0]["reasons"]
 
@@ -180,7 +185,9 @@ def test_casual_has_no_hour_account_and_notice_period(world):
     assert by[ids["anna"]] == 5 and by[ids["ben"]] == 2        # Aushilfe: keine Vertragsstunden-Grenze, kein Soll
     # Ankündigungsfrist 4 Tage (§ 12 TzBfG): kurzfristig keine Aushilfe
     soon = date.today() + timedelta(days=2)
+    # nur Anna und Ben, sonst übernehmen Admin/Planer die Schicht an Werktagen (Test wäre vom Wochentag abhängig)
     r = admin.post("/api/autoplan", json={"department_id": world["dept"], "start": str(soon), "end": str(soon),
+                                          "user_ids": staff(world),
                                           "slots": [{"weekdays": [soon.weekday()], "start_time": "20:00", "end_time": "22:00", "count": 2}]})
     assert r.status_code == 200
     reasons = {k for u in r.json()["unfilled"] for k in u["reasons"]}
