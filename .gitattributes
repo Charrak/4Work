@@ -1,0 +1,5 @@
+# Shell-Skripte immer mit LF (sonst brechen sie auf dem Linux-Server ab, wenn unter Windows ausgecheckt)
+*.sh text eol=lf
+Caddyfile text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
