@@ -164,12 +164,12 @@ button.icon:hover { background: var(--surface2); color: var(--text); }
   .mobilebar .grow { flex: 1; }
   .mobilebar .avatar { width: 32px; height: 32px; font-size: .78rem; text-decoration: none; }
   .tabbar {
-    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
     border-top: 1px solid var(--border); padding: .3rem .25rem var(--safe-bottom);
   }
   .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: .35rem 0; color: var(--muted); text-decoration: none; min-height: 58px; justify-content: center; }
-  .tabbar a span { font-size: 1.2rem; line-height: 1; padding: .3rem 1rem; border-radius: 999px; transition: background .2s var(--ease); }
+  .tabbar a span { font-size: 1.2rem; line-height: 1; padding: .3rem .8rem; border-radius: 999px; transition: background .2s var(--ease); }
   .tabbar a small { font-size: .72rem; font-weight: 600; }
   .tabbar a.active { color: var(--text); }
   .tabbar a.active span { background: color-mix(in srgb, var(--accent) 70%, transparent); }
