@@ -42,7 +42,7 @@ Alle Punkte haben automatische Tests (`tests/test_v11.py`, Abschnitt „Sicherhe
 
 ## Offen / Grenzen
 - Rate Limit und WebSocket-Hub liegen im Arbeitsspeicher eines Prozesses (ein Worker vorgesehen; nach Neustart zurückgesetzt).
-- Kein Virenscan für Uploads. Laufende Datenbank unverschlüsselt (Festplattenverschlüsselung nötig). Schlüssel liegen in der `.env`.
+- Kein Virenscan für Uploads. Sensible Freitextfelder und Chat sind in der Datenbank verschlüsselt (v1.11); Namen, E-Mail und Zeiten nicht (Festplattenverschlüsselung nötig – bei Oracle Cloud standardmäßig aktiv). Schlüssel liegen in der `.env`.
 - Kein 2-Faktor-Login; Kontosperre nach Fehlversuchen vorhanden.
 - Abhängigkeiten wurden von mir nicht auf bekannte Schwachstellen geprüft (kein Netzwerk) – das übernimmt CI/`audit-deps.sh`, sobald die Lock-Dateien eingecheckt sind.
 - Jugend- und Gesundheitsdaten (Atteste) sind besonders schützenswert: Zugriff auf Server und Backups beschränken.

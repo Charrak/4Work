@@ -1,6 +1,8 @@
 """Verschlüsselung ruhender Daten (AES-256-GCM).
 
 * Dokumente: jede Datei einzeln mit DOCUMENTS_KEY (32 Byte, URL-sicheres Base64).
+* Sensible Textfelder in der Datenbank (Telefon, Personalnotiz, Urlaubs-/Krankmeldungs-Notizen,
+  Zeit-Notizen, Chat): ebenfalls mit DOCUMENTS_KEY, gespeichert als "enc1:<Base64>".
 * Backups: Datei-Stream in 1-MiB-Blöcken mit einem aus BACKUP_PASSPHRASE per scrypt abgeleiteten Schlüssel;
   der letzte Block ist markiert, damit abgeschnittene Dateien erkannt werden.
 Geht der Schlüssel bzw. die Passphrase verloren, sind die Daten NICHT wiederherstellbar.
@@ -65,6 +67,41 @@ def decrypt_doc(blob: bytes) -> bytes:
         return AESGCM(key).decrypt(nonce, ct, DOC_MAGIC)
     except InvalidTag as e:
         raise CryptoError("Dokument lässt sich nicht entschlüsseln (falscher Schlüssel oder beschädigt)") from e
+
+
+# ---------- Datenbankfelder ----------
+FIELD_PREFIX = "enc1:"
+FIELD_AAD = b"DPFLD1"
+
+
+def is_encrypted_field(value) -> bool:
+    return isinstance(value, str) and value.startswith(FIELD_PREFIX)
+
+
+def encrypt_field(value: str) -> str:
+    """Verschlüsselt einen Text. Ohne Schlüssel (nur Entwicklung/Test) bleibt er unverändert."""
+    if value is None or value == "" or is_encrypted_field(value):
+        return value
+    key = _doc_key()
+    if key is None:
+        return value
+    nonce = os.urandom(12)
+    ct = AESGCM(key).encrypt(nonce, value.encode("utf-8"), FIELD_AAD)
+    return FIELD_PREFIX + base64.urlsafe_b64encode(nonce + ct).decode()
+
+
+def decrypt_field(value):
+    """Ältere, noch unverschlüsselte Werte werden unverändert zurückgegeben."""
+    if not is_encrypted_field(value):
+        return value
+    key = _doc_key()
+    if key is None:
+        raise CryptoError("Verschlüsseltes Datenbankfeld, aber DOCUMENTS_KEY fehlt")
+    raw = base64.urlsafe_b64decode(value[len(FIELD_PREFIX):].encode())
+    try:
+        return AESGCM(key).decrypt(raw[:12], raw[12:], FIELD_AAD).decode("utf-8")
+    except InvalidTag as e:
+        raise CryptoError("Datenbankfeld lässt sich nicht entschlüsseln (falscher Schlüssel?)") from e
 
 
 # ---------- Backups ----------

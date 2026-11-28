@@ -6,6 +6,7 @@ from sqlalchemy import (Boolean, Column, Date, DateTime, Float, ForeignKey, Inde
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
+from .enc_types import EncryptedText
 from .utils import utcnow
 
 user_departments = Table(
@@ -55,11 +56,11 @@ class User(Base):
     reset_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     hourly_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     vacation_days: Mapped[int] = mapped_column(Integer, default=30)
-    phone: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(EncryptedText, nullable=True)          # verschlüsselt
     job_title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     hire_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     contract_end: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    hr_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)   # interne Notiz der Personalverwaltung
+    hr_note: Mapped[Optional[str]] = mapped_column(EncryptedText, nullable=True)   # interne Notiz der Personalverwaltung (verschlüsselt)
     is_minor: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     is_minijob: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     is_casual: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")  # Aushilfe: kein Stundenkonto/Soll
@@ -134,7 +135,7 @@ class TimeEntry(Base):
     clock_in: Mapped[datetime] = mapped_column(DateTime)
     clock_out: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     approved: Mapped[bool] = mapped_column(Boolean, default=False)
-    note: Mapped[str] = mapped_column(String(500), default="")
+    note: Mapped[str] = mapped_column(EncryptedText, default="")              # verschlüsselt
     lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     lon: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     # Nachvollziehbarkeit bei Korrekturen: ursprünglich gestempelte Zeiten bleiben erhalten
@@ -147,7 +148,7 @@ class TimeEntry(Base):
     edited_by: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     # Löschen = nur ausblenden (Arbeitszeitnachweise müssen aufbewahrt werden)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    delete_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    delete_reason: Mapped[Optional[str]] = mapped_column(EncryptedText, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -159,11 +160,11 @@ class LeaveRequest(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
-    note: Mapped[str] = mapped_column(String(500), default="")
+    note: Mapped[str] = mapped_column(EncryptedText, default="")              # verschlüsselt (kann Gesundheitsbezug haben)
     kind: Mapped[str] = mapped_column(String(20), default="vacation")  # vacation|sick|special|wish
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending|approved|rejected|cancelled
     decided_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
-    decision_comment: Mapped[str] = mapped_column(String(500), default="")
+    decision_comment: Mapped[str] = mapped_column(EncryptedText, default="")  # verschlüsselt
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
@@ -172,7 +173,7 @@ class Message(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    text: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(EncryptedText)                          # verschlüsselt
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

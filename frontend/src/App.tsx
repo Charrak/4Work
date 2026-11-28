@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { queueLength } from "./api";
+import { post, queueLength } from "./api";
 import { AuthProvider, ToastProvider, useAuth, useTheme } from "./context";
 import { useOnline } from "./hooks";
 import { Spinner } from "./ui";
@@ -100,6 +100,7 @@ function Layout() {
         <NavLink to="/profil" className="avatar" aria-label="Profil">{initials}</NavLink>
       </header>
       <main className="content"><Outlet /></main>
+      <PrintGuard name={me!.name} />
       <nav className="tabbar" aria-label="Hauptnavigation">
         {visible.filter((i) => i.mobile).map((i) => (
           <NavLink key={i.to} to={i.to} end={i.to === "/"} className={({ isActive }) => (isActive ? "active" : "")}>
@@ -108,6 +109,30 @@ function Layout() {
         ))}
         <NavLink to="/mehr" className={({ isActive }) => (isActive ? "active" : "")}><span aria-hidden>☰</span><small>Mehr</small></NavLink>
       </nav>
+    </div>
+  );
+}
+
+/**
+ * Datenschutz beim Drucken: Jeder Ausdruck (Knopf oder Strg+P) trägt eine Vertraulichkeits-Fußzeile
+ * mit Name und Zeitpunkt und wird im Protokoll festgehalten (Art. 5 Abs. 2 DSGVO, Rechenschaftspflicht).
+ */
+function PrintGuard({ name }: { name: string }) {
+  const loc = useLocation();
+  const [at, setAt] = useState(() => new Date());
+  useEffect(() => {
+    const h = () => {
+      setAt(new Date());
+      post("/print-log", { page: loc.pathname, detail: document.title }).catch(() => { /* offline: Druck trotzdem erlauben */ });
+    };
+    window.addEventListener("beforeprint", h);
+    return () => window.removeEventListener("beforeprint", h);
+  }, [loc.pathname]);
+  return (
+    <div className="print-only print-footer" aria-hidden>
+      VERTRAULICH – enthält personenbezogene Daten (DSGVO). Nur für den internen Gebrauch, nicht weitergeben.
+      Ausgedruckt von {name} am {at.toLocaleDateString("de-DE")} um {at.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.
+      Nach Gebrauch datenschutzgerecht vernichten (Aktenvernichter).
     </div>
   );
 }

@@ -93,7 +93,9 @@ export default function Reports() {
     out.forEach((l) => l.sort((a, b) => a.when.localeCompare(b.when)));
     return out;
   }, [entries.data, shifts.data, userById]);
-  const colCount = 6 + (showMoney ? 3 : 0) + (showLaw ? 1 : 0);
+  const wagesVisible = rep.data?.wages_visible !== false;
+  const money = showMoney && wagesVisible;
+  const colCount = 6 + (money ? 3 : 0) + (showLaw ? 1 : 0);
   const toggleOpen = (id: number) => setOpenIds((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const toggle = (id: number) => {
@@ -129,7 +131,9 @@ export default function Reports() {
               </Field>
             </div>
             <div className="grow stack" style={{ paddingTop: "1.2rem" }}>
-              <label className="inline-check"><input type="checkbox" checked={showMoney} onChange={(e) => setShowMoney(e.target.checked)} /><span>Lohnkosten (€) anzeigen</span></label>
+              {wagesVisible
+                ? <label className="inline-check"><input type="checkbox" checked={showMoney} onChange={(e) => setShowMoney(e.target.checked)} /><span>Lohnkosten (€) anzeigen</span></label>
+                : <span className="muted small">🔒 Lohnkosten sind nur mit dem Recht „Lohnkosten sehen“ sichtbar.</span>}
               <label className="inline-check"><input type="checkbox" checked={showLaw} onChange={(e) => setShowLaw(e.target.checked)} /><span>Arbeitszeitrecht anzeigen</span></label>
               {detailAllowed && <label className="inline-check"><input type="checkbox" checked={showDetail} onChange={(e) => setShowDetail(e.target.checked)} /><span>Einzelnachweis für alle (Datum, Von, Bis, Pause)</span></label>}
               <label className="inline-check"><input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} /><span>Inaktive ohne Stunden ausblenden</span></label>
@@ -171,7 +175,7 @@ export default function Reports() {
               <table>
                 <thead><tr>
                   <th>Name</th><th className="num">Vertrag (h)</th><th className="num">Geplant (h)</th><th className="num">Gearbeitet (h)</th><th className="num">Freigegeben (h)</th><th className="num">Mehr/Minder (h)</th>
-                  {showMoney && <><th className="num">Grundlohn (€)</th><th className="num">Zuschläge (€)</th><th className="num">Brutto (€)</th></>}
+                  {money && <><th className="num">Grundlohn (€)</th><th className="num">Zuschläge (€)</th><th className="num">Brutto (€)</th></>}
                   {showLaw && <th>Arbeitszeitrecht</th>}
                 </tr></thead>
                 <tbody>
@@ -184,12 +188,12 @@ export default function Reports() {
                         ? <button type="button" className={`expander ${open ? "open" : ""}`} onClick={() => toggleOpen(r.user_id)} aria-expanded={open} title="Einzelnachweis ein-/ausblenden"><span aria-hidden>▸</span>{r.name}</button>
                         : r.name}</td><td className="num">{r.contract_hours ? nf(r.contract_hours) : "–"}</td><td className="num">{nf(r.planned_hours)}</td><td className="num">{nf(r.worked_hours)}</td><td className="num">{nf(r.approved_hours)}</td>
                       <td className={`num ${r.overtime_hours < 0 ? "neg" : r.overtime_hours > 0 ? "pos" : ""}`}>{nf(r.overtime_hours)}</td>
-                      {showMoney && <><td className="num">{nf(r.labor_cost)}</td><td className="num">{nf(r.surcharge_cost)}</td><td className="num">{nf(r.gross_cost)}</td></>}
+                      {money && <><td className="num">{nf(r.labor_cost)}</td><td className="num">{nf(r.surcharge_cost)}</td><td className="num">{nf(r.gross_cost)}</td></>}
                       {showLaw && (
                         <td className="wrap">
                           {r.over_limit_days + r.over_limit_weeks > 0 ? <Badge kind="bad">{r.over_limit_days} Tag(e), {r.over_limit_weeks} Woche(n) über Grenze</Badge> : <Badge kind="ok">Tage/Wochen ok</Badge>}{" "}
                           <Badge kind={r.avg_over_limit ? "bad" : "muted"}>Ø 26 Wo.: {nf(r.avg_weekly_hours_26w)} h</Badge>
-                          {r.is_minijob && r.minijob_months_over > 0 && <> <Badge kind="bad">Minijob-Grenze ({nf(r.minijob_limit)} €) in {r.minijob_months_over} Monat(en) überschritten</Badge></>}
+                          {r.is_minijob && r.minijob_months_over > 0 && <> <Badge kind="bad">Minijob-Grenze{r.minijob_limit != null ? ` (${nf(r.minijob_limit)} €)` : ""} in {r.minijob_months_over} Monat(en) überschritten</Badge></>}
                         </td>
                       )}
                     </tr>
@@ -205,14 +209,14 @@ export default function Reports() {
                 <tfoot>
                   <tr>
                     <th>Summe ({rows.length})</th><th className="num">{nf(totals.contract_hours)}</th><th className="num">{nf(totals.planned_hours)}</th><th className="num">{nf(totals.worked_hours)}</th><th className="num">{nf(totals.approved_hours)}</th><th className="num">{nf(totals.overtime_hours)}</th>
-                    {showMoney && <><th className="num">{nf(totals.labor_cost)}</th><th className="num">{nf(totals.surcharge_cost)}</th><th className="num">{nf(totals.gross_cost)}</th></>}
+                    {money && <><th className="num">{nf(totals.labor_cost)}</th><th className="num">{nf(totals.surcharge_cost)}</th><th className="num">{nf(totals.gross_cost)}</th></>}
                     {showLaw && <th></th>}
                   </tr>
                 </tfoot>
               </table>
             </div>
           )}
-          <p className="muted small">Gearbeitet = abgeschlossene Stempelungen abzüglich Pause (die der Schicht, sonst die gesetzliche Mindestpause). Mehr/Minder = gearbeitet minus Soll der bereits beendeten Schichten. Vertrag = Vertragsstunden pro Woche, auf den Zeitraum umgerechnet.{showMoney && " Grundlohn = gearbeitete Stunden × gültiger Stundensatz, Zuschläge nach den Einstellungen. Brutto-Vorbereitung ohne Steuer und Sozialversicherung."} Die Stempelzeiten jeder Person im Detail stehen unter „Zeit“.</p>
+          <p className="muted small">Gearbeitet = abgeschlossene Stempelungen abzüglich Pause (die der Schicht, sonst die gesetzliche Mindestpause). Mehr/Minder = gearbeitet minus Soll der bereits beendeten Schichten. Vertrag = Vertragsstunden pro Woche, auf den Zeitraum umgerechnet.{money && " Grundlohn = gearbeitete Stunden × gültiger Stundensatz, Zuschläge nach den Einstellungen. Brutto-Vorbereitung ohne Steuer und Sozialversicherung."} Die Stempelzeiten jeder Person im Detail stehen unter „Zeit“.</p>
         </section>
       )}
     </>

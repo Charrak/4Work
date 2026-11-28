@@ -37,7 +37,8 @@ export interface ReportRow {
   night_hours: number; sunday_hours: number; holiday_hours: number; labor_cost: number; surcharge_cost: number; gross_cost: number;
   is_minijob: boolean; minijob_limit: number; minijob_months_over: number; is_minor: boolean;
 }
-export interface Report { rows: ReportRow[]; totals: Omit<ReportRow, "user_id" | "name" | "email"> }
+/** wages_visible = false: Geldbeträge sind null (nur mit Recht „reports.wages“ sichtbar) */
+export interface Report { rows: ReportRow[]; totals: Omit<ReportRow, "user_id" | "name" | "email">; wages_visible?: boolean }
 export interface Wage { id: number; hourly_rate: number; valid_from: string }
 export interface Absence { user_id: number; user_name: string; start_date: string; end_date: string; kind: string }
 export interface ShiftTemplate { id: number; name: string; department_id: number | null; start_time: string; end_time: string; break_minutes: number; note: string }

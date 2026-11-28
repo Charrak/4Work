@@ -10,6 +10,7 @@ from ..db import get_db
 from ..deps import require
 from ..models import Shift, TimeEntry, User
 from ..services.limits import get_limit
+from ..services.common import permissions_for
 from ..services.payroll import RateTable, entry_pay
 from ..utils import UTCDateTime, csv_safe, to_local, utcnow
 
@@ -138,6 +139,14 @@ def compute_summary(db: Session, tenant_id: int, start, end) -> dict:
     return {"start": start.isoformat() + "Z", "end": end.isoformat() + "Z", "rows": lst, "totals": totals}
 
 
+# Geldbeträge sehen nur Personen mit „reports.wages“ (Datensparsamkeit, Art. 5 Abs. 1 lit. c DSGVO)
+MONEY_KEYS = ("labor_cost", "surcharge_cost", "gross_cost", "minijob_limit")
+
+
+def _wages_visible(db: Session, user: User) -> bool:
+    return "reports.wages" in permissions_for(db, user)
+
+
 def _validate(start, end):
     if end <= start or end - start > timedelta(days=370):
         raise HTTPException(422, "Zeitraum ungültig (maximal 370 Tage)")
@@ -147,7 +156,14 @@ def _validate(start, end):
 def summary(start: UTCDateTime, end: UTCDateTime, user: User = Depends(require("reports.view")),
             db: Session = Depends(get_db)):
     _validate(start, end)
-    return compute_summary(db, user.tenant_id, start, end)
+    data = compute_summary(db, user.tenant_id, start, end)
+    data["wages_visible"] = _wages_visible(db, user)
+    if not data["wages_visible"]:
+        for r in [*data["rows"], data["totals"]]:
+            for k in MONEY_KEYS:
+                if k in r:
+                    r[k] = None
+    return data
 
 
 @router.get("/payroll.csv")
@@ -156,16 +172,25 @@ def payroll_csv(start: UTCDateTime, end: UTCDateTime, user: User = Depends(requi
     """Lohnvorbereitung: Stunden pro Person als CSV (Excel/DATEV-Import vorbereitbar)."""
     _validate(start, end)
     data = compute_summary(db, user.tenant_id, start, end)
-    de = lambda x: f"{x:.2f}".replace(".", ",")
-    lines = ["Name;E-Mail;Vertrag (h);Geplant (h);Gearbeitet (h);Freigegeben (h);Mehr/Minder (h);"
-             "Nacht (h);Sonntag (h);Feiertag (h);Grundlohn (EUR);Zuschläge (EUR);Brutto (EUR);"
-             "Tage über Höchstarbeitszeit;Wochen über Höchstarbeitszeit;Minijob-Monate über Grenze"]
+    money = _wages_visible(db, user)
+    de = lambda x: f"{x:.2f}".replace(".", ",")  # noqa: E731
+    head = ["Name", "E-Mail", "Vertrag (h)", "Geplant (h)", "Gearbeitet (h)", "Freigegeben (h)", "Mehr/Minder (h)",
+            "Nacht (h)", "Sonntag (h)", "Feiertag (h)"]
+    if money:
+        head += ["Grundlohn (EUR)", "Zuschläge (EUR)", "Brutto (EUR)"]
+    head += ["Tage über Höchstarbeitszeit", "Wochen über Höchstarbeitszeit", "Minijob-Monate über Grenze"]
+    lines = [";".join(head)]
     for r in data["rows"]:
-        lines.append(";".join([csv_safe(r["name"]), csv_safe(r["email"]), de(r["contract_hours"]), de(r["planned_hours"]),
-                               de(r["worked_hours"]), de(r["approved_hours"]), de(r["overtime_hours"]),
-                               de(r["night_hours"]), de(r["sunday_hours"]), de(r["holiday_hours"]),
-                               de(r["labor_cost"]), de(r["surcharge_cost"]), de(r["gross_cost"]),
-                               str(r["over_limit_days"]), str(r["over_limit_weeks"]), str(r["minijob_months_over"])]))
+        vals = [csv_safe(r["name"]), csv_safe(r["email"]), de(r["contract_hours"]), de(r["planned_hours"]),
+                de(r["worked_hours"]), de(r["approved_hours"]), de(r["overtime_hours"]),
+                de(r["night_hours"]), de(r["sunday_hours"]), de(r["holiday_hours"])]
+        if money:
+            vals += [de(r["labor_cost"]), de(r["surcharge_cost"]), de(r["gross_cost"])]
+        vals += [str(r["over_limit_days"]), str(r["over_limit_weeks"]), str(r["minijob_months_over"])]
+        lines.append(";".join(vals))
+    from ..services.audit import audit
+    audit(db, user, "report.export", f"payroll.csv {start:%Y-%m-%d}–{end:%Y-%m-%d} geld={'ja' if money else 'nein'}")
+    db.commit()
     body = "\ufeff" + "\r\n".join(lines) + "\r\n"
     return Response(body, media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="lohnvorbereitung.csv"'})
