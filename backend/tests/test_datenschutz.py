@@ -35,12 +35,12 @@ def test_legacy_plaintext_fields_are_still_readable(world):
 
 def test_field_crypto_roundtrip_and_wrong_key(monkeypatch):
     import pytest
-    from app.config import settings
     from app.services import crypto
     enc = crypto.encrypt_field("Telefon 0170 123")
     assert enc.startswith("enc1:") and crypto.decrypt_field(enc) == "Telefon 0170 123"
     assert crypto.encrypt_field("") == "" and crypto.encrypt_field(None) is None
-    monkeypatch.setattr(settings, "documents_key", crypto.generate_key())
+    import os
+    monkeypatch.setattr(crypto, "_doc_key", lambda: os.urandom(32))   # anderer Schlüssel
     with pytest.raises(crypto.CryptoError):
         crypto.decrypt_field(enc)
 
