@@ -56,10 +56,22 @@ def cmd_setup_company(a) -> int:
         except ValueError as e:
             print(f"Fehler: {e}")
             return 1
-        first = db.scalar(select(Department).where(Department.tenant_id == admin.tenant_id))
-        first.name = names[0]
-        for n in names[1:]:
-            db.add(Department(tenant_id=admin.tenant_id, name=n))
+        # Die Firma bringt Standard-Abteilungen mit: der Reihe nach umbenennen, fehlende ergänzen,
+        # überzählige entfernen (keine doppelten Namen – sonst Fehler wegen eindeutiger Abteilungsnamen)
+        existing = db.scalars(select(Department).where(Department.tenant_id == admin.tenant_id)
+                              .order_by(Department.id)).all()
+        names = list(dict.fromkeys(names)) or [existing[0].name]
+        for d in existing:               # erst Platzhalter, damit Umbenennen keine Kollision auslöst
+            d.name = f"__tmp_{d.id}"
+        db.flush()
+        for i, n in enumerate(names):
+            if i < len(existing):
+                existing[i].name = n
+            else:
+                db.add(Department(tenant_id=admin.tenant_id, name=n))
+        for d in existing[len(names):]:
+            if d.id != existing[0].id:
+                db.delete(d)
         db.commit()
     print(f"Firma '{a.company}' mit Abteilungen {', '.join(names)} eingerichtet.")
     return 0
@@ -73,10 +85,13 @@ def cmd_seed_demo(a) -> int:
             return 1
         admin = create_tenant_with_admin(db, "physio & fit VitalZentrum Eschweiler (Demo)", "admin@demo.local", "Dora Admin", DEMO_PASSWORD)
         t = admin.tenant_id
-        service = db.scalar(select(Department).where(Department.tenant_id == t))
+        depts = db.scalars(select(Department).where(Department.tenant_id == t).order_by(Department.id)).all()
+        service = depts[0]
         service.name = "Physiotherapie"
-        kitchen = Department(tenant_id=t, name="Fitness")
-        db.add(kitchen)
+        kitchen = next((d for d in depts if d.name == "Fitness"), None)
+        if kitchen is None:
+            kitchen = Department(tenant_id=t, name="Fitness")
+            db.add(kitchen)
         db.flush()
         people = [("planer@demo.local", "Paul Planer", "mitarbeiter", [service, kitchen])]
         names = ["Anna Beck", "Ben Conrad", "Clara Dietz", "David Ebert", "Eva Fuchs", "Felix Graf"]
