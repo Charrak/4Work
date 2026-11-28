@@ -8,6 +8,9 @@ Regeln (bewusst einfach und dokumentiert):
 - Sonntag- und Feiertagszuschlag schließen sich aus: es gilt der höhere der beiden Prozentsätze.
 - Nachtzuschlag wird zusätzlich gezahlt (Summe).
 - Die Pause wird anteilig von allen Abschnitten des Eintrags abgezogen.
+- Monatslohn: Grundlohn = Monatslohn je Abrechnungsmonat (unabhängig von den Stunden); ein Zeitraum vom
+  15. bis 14. oder vom 1. bis Monatsende zählt genau einen Monatslohn, Teilzeiträume anteilig nach Tagen.
+  Zuschläge werden mit dem Stundensatz-Äquivalent berechnet: Monatslohn ÷ (Wochenstunden × 13/3).
 """
 from bisect import bisect_right
 from datetime import date, datetime, time, timedelta
@@ -20,6 +23,56 @@ from ..models import WageHistory
 from ..utils import to_local
 
 NIGHT_START, NIGHT_END = time(23, 0), time(6, 0)
+WEEKS_PER_MONTH = 13 / 3   # 52 Wochen ÷ 12 Monate = 4,333…
+
+
+def hourly_equivalent(monthly_salary: float, weekly_hours: float) -> float:
+    """Stundensatz, der einem Monatslohn bei den vereinbarten Wochenstunden entspricht."""
+    return round(monthly_salary / (weekly_hours * WEEKS_PER_MONTH), 2)
+
+
+def _add_months(d: date, n: int) -> date:
+    y, m = divmod(d.month - 1 + n, 12)
+    y, m = d.year + y, m + 1
+    from calendar import monthrange
+    return date(y, m, min(d.day, monthrange(y, m)[1]))
+
+
+def salary_share(salary_on, start: date, end_excl: date) -> float:
+    """Monatslohn-Anteil für [start, end_excl). salary_on(d) liefert den am Tag d gültigen Monatslohn (oder 0).
+    Gezählt wird in Monatsschritten ab dem Starttag (15.→15., 1.→1.); ein Rest wird nach Tagen anteilig gerechnet."""
+    total, cur = 0.0, start
+    while cur < end_excl:
+        nxt = _add_months(cur, 1)
+        if nxt <= end_excl:
+            total += salary_on(cur) or 0.0
+        else:
+            total += (salary_on(cur) or 0.0) * (end_excl - cur).days / (nxt - cur).days
+        cur = nxt
+    return total
+
+
+class SalaryTable:
+    """Monatslohn je Person und Datum aus dem Lohnverlauf; None = Stundenlohn."""
+
+    def __init__(self, db, tenant_id: int, fallback: dict[int, Optional[float]]):
+        self.fallback = fallback
+        self.hist: dict[int, list[tuple[date, Optional[float]]]] = {}
+        for w in db.scalars(select(WageHistory).where(WageHistory.tenant_id == tenant_id)
+                            .order_by(WageHistory.user_id, WageHistory.valid_from, WageHistory.id)).all():
+            self.hist.setdefault(w.user_id, []).append((w.valid_from, w.monthly_salary))
+
+    def salary(self, user_id: int, d: date) -> Optional[float]:
+        h = self.hist.get(user_id)
+        if h:
+            i = bisect_right([x[0] for x in h], d)
+            return h[i - 1][1] if i else None
+        return self.fallback.get(user_id)
+
+    def is_salaried(self, user_id: int, start: date, end_excl: date) -> bool:
+        if self.salary(user_id, start):
+            return True
+        return any(v for (vf, v) in self.hist.get(user_id, []) if start <= vf < end_excl)
 
 
 class RateTable:

@@ -2,7 +2,7 @@ export type Role = "admin" | "mitarbeiter" | "benutzer";
 
 export interface User {
   id: number; email: string; name: string; role: Role; is_active: boolean; is_locked: boolean;
-  hourly_rate: number | null; vacation_days: number; weekly_hours: number | null; is_minor: boolean; is_minijob: boolean; is_casual: boolean; minijob_limit: number | null; work_days: string; department_ids: number[]; version: number;
+  hourly_rate: number | null; monthly_salary?: number | null; vacation_days: number; weekly_hours: number | null; is_minor: boolean; is_minijob: boolean; is_casual: boolean; minijob_limit: number | null; work_days: string; department_ids: number[]; version: number;
 }
 export interface Me extends User { permissions: string[] }
 export interface Dept { id: number; name: string }
@@ -39,7 +39,7 @@ export interface ReportRow {
 }
 /** wages_visible = false: Geldbeträge sind null (nur mit Recht „reports.wages“ sichtbar) */
 export interface Report { rows: ReportRow[]; totals: Omit<ReportRow, "user_id" | "name" | "email">; wages_visible?: boolean }
-export interface Wage { id: number; hourly_rate: number; valid_from: string }
+export interface Wage { id: number; hourly_rate: number; monthly_salary?: number | null; valid_from: string }
 export interface Absence { user_id: number; user_name: string; start_date: string; end_date: string; kind: string }
 export interface ShiftTemplate { id: number; name: string; department_id: number | null; start_time: string; end_time: string; break_minutes: number; note: string }
 export interface DocItem { id: number; user_id: number | null; user_name: string | null; category: string; title: string; filename: string; size: number; created_at: string }

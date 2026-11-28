@@ -106,6 +106,8 @@ function UserModal({ user, depts, defaultDays, onClose, onSaved }: { user: User 
   const [role, setRole] = useState<Role>(user?.role ?? "benutzer");
   const [ids, setIds] = useState<number[]>(user?.department_ids ?? []);
   const [rate, setRate] = useState(user?.hourly_rate?.toString() ?? "");
+  const [payType, setPayType] = useState<"hourly" | "monthly">(user?.monthly_salary ? "monthly" : "hourly");
+  const [salary, setSalary] = useState(user?.monthly_salary?.toString() ?? "");
   const [days, setDays] = useState((user?.vacation_days ?? (Number(defaultDays) || 30)).toString());
   const [weekly, setWeekly] = useState(user?.weekly_hours?.toString() ?? "");
   const [minor, setMinor] = useState(user?.is_minor ?? false);
@@ -121,7 +123,15 @@ function UserModal({ user, depts, defaultDays, onClose, onSaved }: { user: User 
 
   const save = async () => {
     setError(null);
-    const common = { name, email, role, department_ids: ids, hourly_rate: rate === "" ? null : Number(rate.replace(",", ".")), vacation_days: Number(days), work_days: workDays,
+    const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
+    const pay = payType === "monthly"
+      ? { monthly_salary: num(salary) }
+      : { hourly_rate: num(rate), ...(user?.monthly_salary ? { monthly_salary: 0 } : {}) };
+    if (payType === "monthly" && (!num(salary) || !num(weekly))) {
+      setError("Für einen Monatslohn bitte Betrag und Vertragsstunden pro Woche angeben.");
+      return;
+    }
+    const common = { name, email, role, department_ids: ids, ...pay, vacation_days: Number(days), work_days: workDays,
       weekly_hours: weekly === "" ? null : Number(weekly.replace(",", ".")),
       is_minor: minor, is_minijob: minijob, is_casual: casual, minijob_limit: minijob && mjLimit.trim() !== "" ? Number(mjLimit.replace(",", ".")) : null, ...(rateFrom ? { rate_valid_from: rateFrom } : {}) };
     const send = (extra: object) => user ? patch(`/users/${user.id}`, { ...common, ...extra, version: user.version }) : post("/users", { ...common, ...extra, password });
@@ -153,17 +163,39 @@ function UserModal({ user, depts, defaultDays, onClose, onSaved }: { user: User 
           {depts.map((d) => <label key={d.id} className="inline-check"><input type="checkbox" checked={ids.includes(d.id)} onChange={() => toggle(d.id)} />{d.name}</label>)}
         </div>
         <div className="row">
-          <div className="grow"><Field label="Stundensatz (€)"><input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></Field></div>
+          <div className="grow"><Field label="Vergütung">
+            <select value={payType} onChange={(e) => setPayType(e.target.value as "hourly" | "monthly")}>
+              <option value="hourly">Stundenlohn</option>
+              <option value="monthly">Monatslohn (Festgehalt)</option>
+            </select>
+          </Field></div>
+          {payType === "hourly"
+            ? <div className="grow"><Field label="Stundensatz (€)"><input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></Field></div>
+            : <div className="grow"><Field label="Monatslohn brutto (€)"><input inputMode="decimal" value={salary} placeholder="z. B. 2800" onChange={(e) => setSalary(e.target.value)} /></Field></div>}
+        </div>
+        {payType === "monthly" && (
+          <p className="muted small" style={{ marginTop: "-.4rem" }}>
+            {(() => {
+              const s = Number(salary.replace(",", ".")), w = Number(weekly.replace(",", "."));
+              return s > 0 && w > 0
+                ? <>Entspricht <b>{(s / (w * 13 / 3)).toFixed(2)} € pro Stunde</b> (Monatslohn ÷ ({w} h × 4,33 Wochen)). Damit werden Zuschläge, Mindestlohn und Minijob-Grenze geprüft. Im Bericht zählt pro Abrechnungsmonat der volle Monatslohn, unabhängig von den gestempelten Stunden.</>
+                : <>Bitte auch die <b>Vertragsstunden pro Woche</b> eintragen – daraus wird der Stundensatz für Zuschläge und die Mindestlohn-Prüfung berechnet.</>;
+            })()}
+          </p>
+        )}
+        <div className="row">
           <div className="grow"><Field label="Urlaubstage/Jahr"><input inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} /></Field></div>
           <div className="grow"><Field label="Vertragsstunden/Woche" hint="Leer = nicht festgelegt"><input inputMode="decimal" value={weekly} onChange={(e) => setWeekly(e.target.value)} /></Field></div>
         </div>
-        <Field label="Stundensatz gilt ab" hint="Leer = ab heute. Frühere Abrechnungszeiträume behalten ihren damaligen Satz.">
+        <Field label={payType === "monthly" ? "Monatslohn gilt ab" : "Stundensatz gilt ab"} hint="Leer = ab heute. Frühere Abrechnungszeiträume behalten ihren damaligen Lohn.">
           <input type="date" value={rateFrom} onChange={(e) => setRateFrom(e.target.value)} />
         </Field>
         {user && (
           <div>
-            <button className="link" onClick={async () => { try { setWages(await get<Wage[]>(`/users/${user.id}/wages`)); } catch (e) { setError((e as Error).message); } }}>Stundensatz-Verlauf anzeigen</button>
-            {wages && (wages.length === 0 ? <p className="muted small">Noch kein Verlauf.</p> : wages.map((w) => <div className="list-item" key={w.id}><span>ab {fmtDate(w.valid_from)}</span><b>{w.hourly_rate.toFixed(2)} €</b></div>))}
+            <button className="link" onClick={async () => { try { setWages(await get<Wage[]>(`/users/${user.id}/wages`)); } catch (e) { setError((e as Error).message); } }}>Lohn-Verlauf anzeigen</button>
+            {wages && (wages.length === 0 ? <p className="muted small">Noch kein Verlauf.</p> : wages.map((w) => (
+              <div className="list-item" key={w.id}><span>ab {fmtDate(w.valid_from)}</span>
+                <b>{w.monthly_salary ? `${w.monthly_salary.toFixed(2)} € / Monat (≈ ${w.hourly_rate.toFixed(2)} €/h)` : `${w.hourly_rate.toFixed(2)} € / Stunde`}</b></div>)))}
           </div>
         )}
         <label className="inline-check"><input type="checkbox" checked={minijob} onChange={(e) => setMinijob(e.target.checked)} /><span>Minijob (Verdienstgrenze wird überwacht)</span></label>

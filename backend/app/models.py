@@ -55,6 +55,9 @@ class User(Base):
     reset_token_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     reset_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     hourly_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # Monatslohn (brutto). Gesetzt = Festgehalt; hourly_rate ist dann der daraus berechnete Stundensatz
+    # (Monatslohn ÷ (Wochenstunden × 13/3)) für Zuschläge, Mindestlohn-Prüfung und Planung.
+    monthly_salary: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     vacation_days: Mapped[int] = mapped_column(Integer, default=30)
     phone: Mapped[Optional[str]] = mapped_column(EncryptedText, nullable=True)          # verschlüsselt
     job_title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -255,6 +258,7 @@ class WageHistory(Base):
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     hourly_rate: Mapped[float] = mapped_column(Float)
+    monthly_salary: Mapped[Optional[float]] = mapped_column(Float, nullable=True)   # gesetzt = Monatslohn
     valid_from: Mapped[date] = mapped_column(Date)
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

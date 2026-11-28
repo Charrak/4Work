@@ -11,9 +11,9 @@ import { AvailabilityCard } from "./Availability";
 interface FileData {
   profile: { id: number; version: number; name: string; email: string; role: Role; is_active: boolean; department_ids: number[];
     created_at: string; phone: string | null; job_title: string | null; hire_date: string | null; contract_end: string | null; hr_note: string | null };
-  contract: { weekly_hours: number | null; work_days: string; vacation_days: number; hourly_rate: number | null;
+  contract: { weekly_hours: number | null; work_days: string; vacation_days: number; hourly_rate: number | null; monthly_salary?: number | null;
     is_minor: boolean; is_minijob: boolean; minijob_limit: number | null };
-  wages: { id: number; hourly_rate: number; valid_from: string }[];
+  wages: { id: number; hourly_rate: number; monthly_salary?: number | null; valid_from: string }[];
   year: number;
   leave: { entitlement: number; used: number; pending: number; remaining: number; vacation_days_taken: number; sick_days: number };
   time: Record<string, number | null>;
@@ -95,13 +95,15 @@ export default function Personnel() {
       <Card title="Vertrag und Lohn">
         <p>
           Vertragsstunden: <b>{c.weekly_hours ?? "nicht festgelegt"}</b>{c.weekly_hours ? " h/Woche" : ""} · Arbeitstage: <b>{c.work_days.split("").map((n) => WEEKDAYS[Number(n) - 1].slice(0, 2)).join(", ")}</b> · Urlaubsanspruch: <b>{c.vacation_days} Tage</b><br />
-          Aktueller Stundensatz: <b>{c.hourly_rate != null ? `${nf(c.hourly_rate)} €` : "–"}</b>
+          {c.monthly_salary
+            ? <>Monatslohn: <b>{nf(c.monthly_salary)} €</b> <span className="muted">(≈ {c.hourly_rate != null ? nf(c.hourly_rate) : "–"} €/h)</span></>
+            : <>Aktueller Stundensatz: <b>{c.hourly_rate != null ? `${nf(c.hourly_rate)} €` : "–"}</b></>}
           {c.is_minijob && <> · <Badge kind="info">Minijob{c.minijob_limit ? `, max. ${nf(c.minijob_limit)} €/Monat` : ""}</Badge></>}
           {c.is_minor && <> · <Badge kind="warn">Jugendlich</Badge></>}
         </p>
         {d.wages.length > 0 && <>
           <b>Stundensatz-Verlauf</b>
-          {d.wages.map((w) => <div className="list-item" key={w.id}><span>ab {fmtDate(w.valid_from)}</span><b>{nf(w.hourly_rate)} €</b></div>)}
+          {d.wages.map((w) => <div className="list-item" key={w.id}><span>ab {fmtDate(w.valid_from)}</span><b>{w.monthly_salary ? `${nf(w.monthly_salary)} € / Monat` : `${nf(w.hourly_rate)} € / Std.`}</b></div>)}
         </>}
         <p className="muted small">Änderungen an Vertrag und Lohn: Verwaltung → Benutzer → Bearbeiten.</p>
       </Card>

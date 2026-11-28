@@ -60,6 +60,7 @@ class UserOut(ORM):
     is_active: bool
     is_locked: bool
     hourly_rate: Optional[float]
+    monthly_salary: Optional[float] = None
     vacation_days: int
     weekly_hours: Optional[float] = None
     is_minor: bool = False
@@ -82,6 +83,7 @@ class UserCreate(BaseModel):
     password: Password
     role: Role = "benutzer"
     hourly_rate: Optional[float] = Field(default=None, ge=0, le=10000)
+    monthly_salary: Optional[float] = Field(default=None, ge=0, le=100000)
     vacation_days: int = Field(default=30, ge=0, le=365)
     work_days: WorkDays = "12345"
     weekly_hours: Optional[float] = Field(default=None, gt=0, le=60)
@@ -101,6 +103,7 @@ class UserUpdate(BaseModel):
     role: Optional[Role] = None
     is_active: Optional[bool] = None
     hourly_rate: Optional[float] = Field(default=None, ge=0, le=10000)
+    monthly_salary: Optional[float] = Field(default=None, ge=0, le=100000)   # 0 = zurück zu Stundenlohn
     vacation_days: Optional[int] = Field(default=None, ge=0, le=365)
     work_days: Optional[WorkDays] = None
     weekly_hours: Optional[float] = Field(default=None, gt=0, le=60)
@@ -414,6 +417,7 @@ class AvailabilityOut(AvailabilityIn):
 class WageOut(ORM):
     id: int
     hourly_rate: float
+    monthly_salary: Optional[float] = None
     valid_from: date
 
 

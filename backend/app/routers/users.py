@@ -1,5 +1,6 @@
 import secrets
 from datetime import date
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +16,7 @@ from ..schemas import (WageOut, DepartmentIn, DepartmentOut, RolePermissionsIn, 
 from ..security import hash_password
 from ..services.audit import audit
 from ..services.limits import get_limit
+from ..services.payroll import hourly_equivalent
 from ..services.common import (changed, check_version, get_department_or_404, get_user_or_404,
                                permissions_for)
 from ..utils import utcnow
@@ -62,6 +64,16 @@ def _check_wage(db, user: User, rate, ignore: bool) -> None:
         audit(db, user, "user.wage_below_minimum", f"rate={rate}")
 
 
+def _salary_rate(salary, weekly_hours) -> Optional[float]:
+    """Monatslohn → Stundensatz-Äquivalent. Ohne Wochenstunden lässt sich kein Satz berechnen."""
+    if not salary:
+        return None
+    if not weekly_hours:
+        raise HTTPException(422, "Für einen Monatslohn bitte die vertraglichen Wochenstunden angeben "
+                                 "(daraus werden Stundensatz, Zuschläge und die Mindestlohn-Prüfung berechnet).")
+    return hourly_equivalent(salary, weekly_hours)
+
+
 @router.get("", response_model=list[UserOut])
 def list_users(user: User = Depends(require("users.view")), db: Session = Depends(get_db)):
     rows = db.scalars(select(User).where(User.tenant_id == user.tenant_id, User.deleted_at.is_(None))
@@ -73,6 +85,7 @@ def list_users(user: User = Depends(require("users.view")), db: Session = Depend
     for u in rows:
         o = UserOut.model_validate(u)
         o.hourly_rate = None
+        o.monthly_salary = None
         o.weekly_hours = None
         o.is_minor = False
         o.is_minijob = False
@@ -88,10 +101,12 @@ def create_user(body: UserCreate, request: Request, user: User = Depends(require
     if db.scalar(select(User.id).where(User.email == body.email)):
         raise HTTPException(409, "Diese E-Mail-Adresse ist bereits vergeben")
     _admin_only(user, body.role)
-    _check_wage(db, user, body.hourly_rate, body.ignore_warnings)
+    salary = body.monthly_salary or None
+    rate = _salary_rate(salary, body.weekly_hours) if salary else body.hourly_rate
+    _check_wage(db, user, rate, body.ignore_warnings)
     new = User(tenant_id=user.tenant_id, email=body.email, name=body.name,
                password_hash=hash_password(body.password), role=body.role,
-               hourly_rate=body.hourly_rate, vacation_days=body.vacation_days, work_days=body.work_days,
+               hourly_rate=rate, monthly_salary=salary, vacation_days=body.vacation_days, work_days=body.work_days,
                weekly_hours=body.weekly_hours, is_minor=body.is_minor, is_minijob=body.is_minijob, is_casual=body.is_casual,
                minijob_limit=body.minijob_limit if body.is_minijob else None)
     new.departments = _departments(db, user.tenant_id, body.department_ids)
@@ -99,7 +114,7 @@ def create_user(body: UserCreate, request: Request, user: User = Depends(require
     db.flush()
     if new.hourly_rate:
         db.add(WageHistory(tenant_id=user.tenant_id, user_id=new.id, hourly_rate=new.hourly_rate,
-                           valid_from=body.rate_valid_from or date.today(), created_by=user.id))
+                           monthly_salary=salary, valid_from=body.rate_valid_from or date.today(), created_by=user.id))
     audit(db, user, "user.create", f"user={new.id} role={new.role}", request)
     db.commit()
     changed(user.tenant_id, "users")
@@ -117,6 +132,15 @@ def update_user(user_id: int, body: UserUpdate, request: Request,
     data.pop("version")
     ignore = bool(data.pop("ignore_warnings", False))
     rate_from = data.pop("rate_valid_from", None)
+    # Monatslohn: Stundensatz-Äquivalent berechnen (auch wenn sich nur die Wochenstunden ändern)
+    salary_changed = "monthly_salary" in data
+    if salary_changed and not data["monthly_salary"]:
+        data["monthly_salary"] = None            # zurück zum Stundenlohn
+    salary = data["monthly_salary"] if salary_changed else target.monthly_salary
+    if salary and (salary_changed or "weekly_hours" in data):
+        data["hourly_rate"] = _salary_rate(salary, data.get("weekly_hours") or target.weekly_hours)
+    elif salary and "hourly_rate" in data:
+        data.pop("hourly_rate")                  # bei Monatslohn wird der Satz nicht direkt gesetzt
     if data.get("hourly_rate") is not None:
         _check_wage(db, user, data["hourly_rate"], ignore)
     if "email" in data and data["email"] != target.email:
@@ -131,20 +155,24 @@ def update_user(user_id: int, body: UserUpdate, request: Request,
             raise HTTPException(400, "Es muss mindestens ein aktiver Administrator vorhanden sein")
     if "department_ids" in data:
         target.departments = _departments(db, user.tenant_id, data.pop("department_ids") or [])
-    if "hourly_rate" in data and data["hourly_rate"] != target.hourly_rate and data["hourly_rate"]:
+    pay_changed = ("hourly_rate" in data and data["hourly_rate"] != target.hourly_rate and data["hourly_rate"]) \
+        or (salary_changed and salary != target.monthly_salary)
+    if pay_changed and (data.get("hourly_rate") or target.hourly_rate):
         valid_from = rate_from or date.today()
+        new_rate = data.get("hourly_rate") or target.hourly_rate
         existing = db.scalar(select(WageHistory).where(WageHistory.user_id == target.id,
                                                        WageHistory.valid_from == valid_from))
         if existing:
-            existing.hourly_rate = data["hourly_rate"]
+            existing.hourly_rate, existing.monthly_salary = new_rate, salary
         else:
-            db.add(WageHistory(tenant_id=user.tenant_id, user_id=target.id, hourly_rate=data["hourly_rate"],
-                               valid_from=valid_from, created_by=user.id))
-        audit(db, user, "user.wage_change", f"user={target.id} ab={valid_from} satz={data['hourly_rate']}", request)
+            db.add(WageHistory(tenant_id=user.tenant_id, user_id=target.id, hourly_rate=new_rate,
+                               monthly_salary=salary, valid_from=valid_from, created_by=user.id))
+        audit(db, user, "user.wage_change",
+              f"user={target.id} ab={valid_from} " + (f"monatslohn={salary}" if salary else f"satz={new_rate}"), request)
     for key, value in data.items():
         if key in ("email", "name", "role", "is_active", "vacation_days", "work_days", "is_minor", "is_minijob", "is_casual") and value is None:
             continue
-        if key == "hourly_rate" and value and rate_from and rate_from > date.today():
+        if key in ("hourly_rate", "monthly_salary") and rate_from and rate_from > date.today():
             continue  # Satz gilt erst ab Zukunftsdatum; der Verlauf enthält ihn bereits
         setattr(target, key, value)
     if data.get("is_minijob") is False:
@@ -231,6 +259,7 @@ def delete_user(user_id: int, request: Request, delete_documents: bool = False,
     target.password_hash = hash_password(secrets.token_urlsafe(24))
     target.is_active = False
     target.hourly_rate = None
+    target.monthly_salary = None
     target.reset_token_hash = None
     target.reset_expires = None
     target.token_version += 1

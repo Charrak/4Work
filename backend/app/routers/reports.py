@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Optional
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
@@ -11,7 +11,7 @@ from ..deps import require
 from ..models import Shift, TimeEntry, User
 from ..services.limits import get_limit
 from ..services.common import permissions_for
-from ..services.payroll import RateTable, entry_pay
+from ..services.payroll import RateTable, SalaryTable, entry_pay, salary_share
 from ..utils import UTCDateTime, csv_safe, to_local, utcnow
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -55,11 +55,14 @@ def compute_summary(db: Session, tenant_id: int, start, end) -> dict:
                    "avg_weekly_hours_26w": 0.0, "avg_over_limit": False,
                    "night_hours": 0.0, "sunday_hours": 0.0, "holiday_hours": 0.0,
                    "labor_cost": 0.0, "surcharge_cost": 0.0, "gross_cost": 0.0,
-                   "is_minijob": bool(u.is_minijob), "minijob_limit": u.minijob_limit or minijob_default, "minijob_months_over": 0, "is_minor": bool(u.is_minor)} for u in users}
+                   "is_minijob": bool(u.is_minijob), "minijob_limit": u.minijob_limit or minijob_default, "minijob_months_over": 0, "is_minor": bool(u.is_minor), "pay_type": "hourly"} for u in users}
     max_day, max_week = get_limit(db, tenant_id, "max_daily_hours"), get_limit(db, tenant_id, "max_weekly_hours")
     night_pct, sun_pct, hol_pct = (get_limit(db, tenant_id, k) for k in
                                    ("surcharge_night_pct", "surcharge_sunday_pct", "surcharge_holiday_pct"))
     rates = RateTable(db, tenant_id, {u.id: u.hourly_rate for u in users})
+    salaries = SalaryTable(db, tenant_id, {u.id: u.monthly_salary for u in users})
+    d0, d1 = to_local(start).date(), to_local(end).date()
+    salaried = {u.id for u in users if salaries.is_salaried(u.id, d0, d1)}
     per_day: dict = defaultdict(float)
     per_week: dict = defaultdict(float)
     per_month: dict = defaultdict(float)
@@ -89,12 +92,24 @@ def compute_summary(db: Session, tenant_id: int, start, end) -> dict:
         per_day[(e.user_id, d)] += h
         per_week[(e.user_id, d - timedelta(days=d.weekday()))] += h
         base, sur, hn, hs, hh = entry_pay(e.user_id, e.clock_in, e.clock_out, h, rates, night_pct, sun_pct, hol_pct)
+        if e.user_id in salaried:
+            base = 0.0   # Festgehalt: Grundlohn kommt aus dem Monatslohn, nicht aus den Stunden
         r["labor_cost"] += base
         r["surcharge_cost"] += sur
         r["night_hours"] += hn
         r["sunday_hours"] += hs
         r["holiday_hours"] += hh
         per_month[(e.user_id, d.year, d.month)] += base + sur
+    for uid in salaried:
+        def sal_on(d, uid=uid):
+            return salaries.salary(uid, d) or 0.0
+        rows[uid]["labor_cost"] += salary_share(sal_on, d0, d1)
+        rows[uid]["pay_type"] = "monthly"
+        # Minijob-Grenze: Monatslohn zählt in jedem Kalendermonat des Zeitraums voll
+        m = date(d0.year, d0.month, 1)
+        while m < d1:
+            per_month[(uid, m.year, m.month)] += sal_on(m)
+            m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
     day_lim = {uid: (8.0 if by_id[uid].is_minor else max_day) for uid in rows}
     week_lim = {uid: (40.0 if by_id[uid].is_minor else max_week) for uid in rows}
     for (uid, _), h in per_day.items():
